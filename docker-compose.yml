@@ -1,27 +1,19 @@
 version: '3.8'
 
 services:
-  gitpulse:
+  titforgit:
     build: .
-    image: gitpulse:latest
-    container_name: gitpulse
+    image: titforgit:latest
+    container_name: titforgit
     restart: unless-stopped
+    ports:
+      - "8080:8080"
     environment:
-      - GITHUB_TOKEN=${GITHUB_TOKEN}
-      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
-      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID:-}
-      - AUTO_FOLLOW_BACK=true
-      - MAX_FOLLOW_BACK_PER_CYCLE=2
-      - NICHE_DISCOVERY_ENABLED=true
-      - TARGET_TOPICS=delphi,mcp,python-agent
-      - MIN_STARS=5
-      - MAX_STARS=200
-      - DAILY_STAR_LIMIT=3
-      - FOLLOW_TARGET_OWNER=true
-      - RUN_MODE=daemon
+      - PORT=8080
+      - RUN_MODE=server
       - INTERVAL_SECONDS=3600
     volumes:
-      - gitpulse_data:/data
+      - titforgit_data:/data
 
 volumes:
-  gitpulse_data:
+  titforgit_data:

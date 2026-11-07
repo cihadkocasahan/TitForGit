@@ -1,9 +1,9 @@
-name: GitPulse Engine
+name: TitForGit Engine
 on:
   schedule:
-    # Her 2 saatte bir çalışır (UTC)
+    # Runs every 2 hours UTC
     - cron: '0 */2 * * *'
-  workflow_dispatch: # Manuel tetikleme imkanı
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -22,7 +22,7 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Run GitPulse Engine
+      - name: Run TitForGit Engine
         env:
           GITHUB_TOKEN: ${{ secrets.GH_PAT }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
@@ -32,14 +32,14 @@ jobs:
           TARGET_TOPICS: 'delphi,mcp,ai-agents'
           DAILY_STAR_LIMIT: '2'
           RUN_MODE: 'cron'
-          GITPULSE_STATE_FILE: 'state/gitpulse_state.json'
+          TITFORGIT_DATA_DIR: 'state'
         run: |
           mkdir -p state
-          python gitpulse.py
+          python titforgit.py
 
       - name: Commit & Push State Sync
         run: |
-          git config --global user.name "gitpulse-bot"
-          git config --global user.email "bot@gitpulse.local"
-          git add state/gitpulse_state.json
-          git diff --quiet && git diff --staged --quiet || (git commit -m "chore(sync): update gitpulse state [skip ci]" && git push)
+          git config --global user.name "titforgit-bot"
+          git config --global user.email "bot@titforgit.local"
+          git add state/titforgit_state.json
+          git diff --quiet && git diff --staged --quiet || (git commit -m "chore(sync): update titforgit state [skip ci]" && git push)
