@@ -98,6 +98,22 @@ Ideal for home labs, VPS, Raspberry Pi, or local machines.
 
 ---
 
+## 📖 Kullanım Kılavuzu ve Kurallar (Usage & Rules)
+
+| Kural / Parametre | Açıklama | Varsayılan |
+| :--- | :--- | :--- |
+| **👉 Karşılık Dürtmesi (Follow-Back)** | Sizi takip eden geliştiricileri otomatik olarak geri takip eder. Tit-for-Tat mantığıyla çalışır. | `Açık` |
+| **⭐ Organik Niş Keşif (Star)** | Belirlediğiniz konulardaki (`topics`) yükselen repoları keşfeder ve yıldız bırakır. | `Açık` |
+| **👤 Repo Sahibini Takip Et** | Keşfedilip yıldız verilen projenin yazarını da takibe alarak organik etkileşimi artırır. | `Açık` |
+| **🧹 Karşılıksız Takipleri Bırak** | Sizi takip etmeyen kişileri döngü başı 1-2 kişi olacak şekilde güvenli mikro-dozajla takipten çıkarır. | `Kapalı` |
+| **💖 Projeleri Otomatik Destekle** | Açık kaynak ekosistemi kapsamında geliştiricinin (`@cihadkocasahan`) açık repolarını otomatik starlar. | `Açık` |
+| **Hedef Konular (Topics)** | Aranacak GitHub konu etiketleri (virgülle ayrılmış: örn. `delphi, mcp, python-agent`). | `delphi, mcp...` |
+| **Min ★ / Max ★** | Spam veya çöp repolardan kaçınmak ve etkileşim olasılığı yüksek niş projeleri hedeflemek için yıldız aralığı. | `5` - `150` |
+| **Döngü Başı (Per Cycle)** | Her çalışma turunda en fazla kaç repoya star atılacağı (anti-ban limiti). | `2` |
+| **Aralık (Dk)** | Motorun kaç dakikada bir uyanıp yeni etkileşim arayacağı. | `60` |
+
+---
+
 ## ⚖️ Commercial Use, Fair Use & Disclaimer
 
 - **Commercial & Personal Use:** Licensed under the MIT License. You are free to run, host, modify, and distribute this software for personal or commercial workflows.

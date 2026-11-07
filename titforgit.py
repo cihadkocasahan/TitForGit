@@ -462,7 +462,7 @@ HTML_DASHBOARD = """<!DOCTYPE html>
     /* SOL PANEL: AYARLAR (380px) */
     .sidebar {
       width: 380px; flex-shrink: 0; display: flex; flex-direction: column;
-      gap: 12px; overflow-y: auto; padding-right: 4px;
+      gap: 12px; overflow-y: auto; overflow-x: hidden; padding-right: 4px;
     }
 
     /* SAĞ PANEL: CANLI LOG TERMİNALİ */
@@ -545,10 +545,10 @@ HTML_DASHBOARD = """<!DOCTYPE html>
     }
     .info-tip:hover { background: var(--accent); color: #fff; }
     .info-tip:hover::after {
-      content: attr(data-tooltip); position: absolute; left: 20px; top: -6px;
+      content: attr(data-tooltip); position: absolute; left: 0; bottom: calc(100% + 6px);
       background: var(--panel); border: 1px solid var(--border); color: var(--heading);
       padding: 6px 10px; border-radius: 6px; font-size: 11px; white-space: normal;
-      width: 220px; line-height: 1.4; z-index: 100; box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+      width: 200px; line-height: 1.4; z-index: 1000; box-shadow: 0 4px 14px rgba(0,0,0,0.6);
       pointer-events: none;
     }
 
@@ -696,7 +696,10 @@ HTML_DASHBOARD = """<!DOCTYPE html>
       <div class="sidebar">
         <!-- 1. BÜYÜME VE HEDEFLER -->
         <div class="card">
-          <div class="card-title" id="t_rulesTitle">🎯 1. Tit-for-Tat Kuralları</div>
+          <div class="card-title">
+            <span id="t_rulesTitle">🎯 1. Tit-for-Tat Kuralları</span>
+            <a href="https://github.com/cihadkocasahan/titforgit#usage" target="_blank" style="font-size: 11px; color: var(--highlight); text-decoration: none; font-weight: 500;" id="t_usageLink">📖 Rehber / Usage ↗</a>
+          </div>
           <div class="toggle-row">
             <span>👉 <span id="t_ruleFollow">Karşılık Dürtmesi (Follow-Back)</span> <span class="info-tip" data-tooltip="Sizi takip eden geliştiricileri otomatik olarak geri dürtüp takip eder.">?</span></span>
             <input type="checkbox" id="autoFollow" checked />
@@ -720,19 +723,19 @@ HTML_DASHBOARD = """<!DOCTYPE html>
           <!-- 2x2 Dengeli Grid -->
           <div class="inputs-grid">
             <div>
-              <label id="t_minStars">Min ★ <span class="info-tip" data-tooltip="Çok çöp repolara düşmemek için alt sınır.">?</span></label>
+              <label id="t_minStars">Min ★</label>
               <input type="text" id="minStars" value="5" />
             </div>
             <div>
-              <label id="t_maxStars">Max ★ <span class="info-tip" data-tooltip="Büyük repolar yerine sizi fark edecek niş repolar için üst sınır.">?</span></label>
+              <label id="t_maxStars">Max ★</label>
               <input type="text" id="maxStars" value="150" />
             </div>
             <div>
-              <label id="t_dailyLimit">Döngü Başı <span class="info-tip" data-tooltip="Her çalışma turunda en fazla kaç repoya star atılacağı (anti-ban limiti).">?</span></label>
+              <label id="t_dailyLimit">Döngü Başı</label>
               <input type="text" id="dailyLimit" value="2" />
             </div>
             <div>
-              <label id="t_interval">Aralık (Dk) <span class="info-tip" data-tooltip="Motorun kaç dakikada bir uyanıp yeni etkileşim arayacağı.">?</span></label>
+              <label id="t_interval">Aralık (Dk)</label>
               <input type="text" id="intervalMinutes" value="60" placeholder="60" />
             </div>
           </div>
@@ -844,6 +847,7 @@ HTML_DASHBOARD = """<!DOCTYPE html>
         saveBtn: '💾 Ayarları Kaydet',
         clearLogsBtn: '🗑️ Temizle',
         rulesTitle: '🎯 1. Tit-for-Tat Kuralları',
+        usageLink: '📖 Rehber / Doküman ↗',
         ruleFollow: 'Karşılık Dürtmesi (Follow-Back)',
         ruleStar: 'Organik Niş Keşif (Star)',
         ruleOwner: 'Repo Sahibini Takip Et',
@@ -872,6 +876,7 @@ HTML_DASHBOARD = """<!DOCTYPE html>
         saveBtn: '💾 Save Settings',
         clearLogsBtn: '🗑️ Clear',
         rulesTitle: '🎯 1. Tit-for-Tat Rules',
+        usageLink: '📖 Guide / Usage ↗',
         ruleFollow: 'Reciprocal Poke (Follow-Back)',
         ruleStar: 'Organic Niche Discovery (Star)',
         ruleOwner: 'Follow Repo Author',
@@ -902,16 +907,17 @@ HTML_DASHBOARD = """<!DOCTYPE html>
       document.getElementById('t_logStreamTitle').innerText = t.logStreamTitle;
 
       document.getElementById('t_rulesTitle').innerText = t.rulesTitle;
+      document.getElementById('t_usageLink').innerText = t.usageLink;
       document.getElementById('t_ruleFollow').innerText = t.ruleFollow;
       document.getElementById('t_ruleStar').innerText = t.ruleStar;
       document.getElementById('t_ruleOwner').innerText = t.ruleOwner;
       document.getElementById('t_ruleUnfollow').innerText = t.ruleUnfollow;
       document.getElementById('t_ruleSupport').innerText = t.ruleSupport;
       document.getElementById('t_targetTopics').childNodes[0].nodeValue = t.targetTopics + ' ';
-      document.getElementById('t_minStars').childNodes[0].nodeValue = t.minStars + ' ';
-      document.getElementById('t_maxStars').childNodes[0].nodeValue = t.maxStars + ' ';
-      document.getElementById('t_dailyLimit').childNodes[0].nodeValue = t.dailyLimit + ' ';
-      document.getElementById('t_interval').childNodes[0].nodeValue = t.interval + ' ';
+      document.getElementById('t_minStars').innerText = t.minStars;
+      document.getElementById('t_maxStars').innerText = t.maxStars;
+      document.getElementById('t_dailyLimit').innerText = t.dailyLimit;
+      document.getElementById('t_interval').innerText = t.interval;
       document.getElementById('t_radarTitle').childNodes[0].nodeValue = t.radarTitle + ' ';
       document.getElementById('t_creatorTitle').innerText = t.creatorTitle;
 
