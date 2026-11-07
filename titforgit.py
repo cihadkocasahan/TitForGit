@@ -451,6 +451,7 @@ HTML_DASHBOARD = """<!DOCTYPE html>
     }
     .brand { font-size: 18px; font-weight: 700; color: var(--heading); display: flex; align-items: center; gap: 8px; }
     .badge { background: #1f6feb26; color: var(--highlight); font-size: 11px; padding: 2px 7px; border-radius: 12px; border: 1px solid #1f6feb66; }
+    body.light-theme .badge { background: #ddf4ff; color: #0969da; border-color: #54aeff66; }
 
     /* İÇ DÜZEN: Sol Menü + Geniş Terminal */
     .layout {
@@ -521,13 +522,36 @@ HTML_DASHBOARD = """<!DOCTYPE html>
       padding: 12px; overflow-y: auto; font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
       font-size: 12px; line-height: 1.6; color: var(--text);
     }
-    .log-entry { margin-bottom: 3px; word-break: break-all; }
-    .log-entry.star { color: #e3b341; font-weight: 500; }
+    .log-entry { margin-bottom: 3px; word-break: break-all; color: var(--text); }
+    .log-entry.star { color: #f0883e; font-weight: 500; }
     .log-entry.follow { color: #58a6ff; font-weight: 500; }
     .log-entry.success { color: #3fb950; font-weight: 500; }
-    body.light-theme .log-entry.star { color: #9a6700; font-weight: 600; }
+    .log-entry.warn { color: #d29922; font-weight: 500; }
+    .log-entry.danger { color: #f85149; font-weight: 500; }
+
+    /* Light Theme Terminal & Log Renkleri (Yüksek Kontrast & Temiz Okunabilirlik) */
+    body.light-theme .log-terminal { background: #f6f8fa; border-color: #d0d7de; }
+    body.light-theme .log-entry { color: #24292f; }
+    body.light-theme .log-entry.star { color: #b05a00; font-weight: 600; }
     body.light-theme .log-entry.follow { color: #0969da; font-weight: 600; }
     body.light-theme .log-entry.success { color: #1a7f37; font-weight: 600; }
+    body.light-theme .log-entry.warn { color: #9a6700; font-weight: 600; }
+    body.light-theme .log-entry.danger { color: #cf222e; font-weight: 600; }
+
+    /* Ekosistem / Geliştirici Kartı Teması */
+    .ecosystem-card {
+      background: rgba(22, 27, 34, 0.6); border: 1px dashed var(--border);
+      padding: 12px; font-size: 11px; border-radius: 8px;
+    }
+    body.light-theme .ecosystem-card {
+      background: #f6f8fa; border: 1px dashed #d0d7de; color: #24292f;
+    }
+    .ecosystem-divider {
+      margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    body.light-theme .ecosystem-divider {
+      border-top-color: #d0d7de;
+    }
 
     /* Toast Bildirim */
     .toast {
@@ -554,6 +578,9 @@ HTML_DASHBOARD = """<!DOCTYPE html>
       width: 200px; line-height: 1.4; z-index: 1000; box-shadow: 0 4px 14px rgba(0,0,0,0.6);
       pointer-events: none;
     }
+    body.light-theme .info-tip:hover::after {
+      background: #ffffff; border-color: #d0d7de; color: #24292f; box-shadow: 0 4px 14px rgba(140, 149, 159, 0.35);
+    }
 
     /* Modal / Popup */
     .modal-overlay {
@@ -567,6 +594,9 @@ HTML_DASHBOARD = """<!DOCTYPE html>
       background: var(--panel); border: 1px solid var(--border);
       border-radius: 10px; width: 440px; max-width: 90vw; padding: 20px;
       box-shadow: 0 12px 36px rgba(0,0,0,0.6);
+    }
+    body.light-theme .modal-box {
+      background: #ffffff; border-color: #d0d7de; box-shadow: 0 12px 36px rgba(140, 149, 159, 0.3);
     }
     .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
     .modal-title { font-size: 15px; font-weight: 700; color: var(--heading); }
@@ -753,7 +783,7 @@ HTML_DASHBOARD = """<!DOCTYPE html>
         </div>
 
         <!-- 3. AÇIK KAYNAK DESTEK & GELİŞTİRİCİ KARTI -->
-        <div class="card" style="background: rgba(22, 27, 34, 0.6); border: 1px dashed var(--border); padding: 12px; font-size: 11px;">
+        <div class="card ecosystem-card">
           <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
             <span style="font-weight: 600; color: var(--heading);" id="t_creatorTitle">👨‍💻 Açık Kaynak Ekosistemi</span>
             <span class="badge" style="font-size: 9px; padding: 1px 6px;">MIT</span>
@@ -764,7 +794,7 @@ HTML_DASHBOARD = """<!DOCTYPE html>
           </div>
 
           <!-- AÇIK KAYNAK DESTEK TOGGLE (BU KARTA TAŞINDI) -->
-          <div class="toggle-row" style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.05);">
+          <div class="toggle-row ecosystem-divider">
             <span style="font-weight: 600;">💖 <span id="t_ruleSupport">Projeleri Otomatik Destekle</span> <span class="info-tip" data-tooltip="Açık olduğunda @cihadkocasahan profilindeki açık repoları otomatik olarak yıldızlar.">?</span></span>
             <input type="checkbox" id="supportCreator" checked onchange="saveConfig()" />
           </div>
@@ -1185,8 +1215,10 @@ HTML_DASHBOARD = """<!DOCTYPE html>
       box.innerHTML = filtered.map(l => {
         let cls = 'log-entry';
         if (l.includes('Star')) cls += ' star';
-        else if (l.includes('takip') || l.includes('Dürtme') || l.includes('Poke') || l.includes('Follow')) cls += ' follow';
+        else if (l.includes('takip') || l.includes('Dürtme') || l.includes('Poke') || l.includes('Follow') || l.includes('Takipten')) cls += ' follow';
         else if (l.includes('tamamlandı') || l.includes('devrede') || l.includes('aktif') || l.includes('Active')) cls += ' success';
+        else if (l.includes('Jitter') || l.includes('Beklemede')) cls += ' warn';
+        else if (l.includes('HATA') || l.includes('uyarısı') || l.includes('Error')) cls += ' danger';
         return `<div class="${cls}">${l}</div>`;
       }).join('');
 
