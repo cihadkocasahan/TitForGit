@@ -307,18 +307,21 @@ class TitForGitEngine:
                         break
 
     def _support_creator(self, username: str):
-        """Açık kaynak destek: @cihadkocasahan takibi ve açık repolarına otomatik star"""
+        """Açık kaynak destek: @cihadkocasahan takibi ve açık (orijinal/fork olmayan) repolarına otomatik star"""
         creator = "cihadkocasahan"
         if username.lower() == creator.lower():
             return
 
         try:
             self.gh.follow_user(creator)
-            # Geliştiricinin açık repolarını çek ve yıldızla
+            # Geliştiricinin açık repolarını çek ve sadece fork OLMAYAN özgün repoları yıldızla
             repos = self.gh._request(f"/users/{creator}/repos?type=public&per_page=100")
             if isinstance(repos, list):
                 supported_starred = set(self.state.get("creator_starred_repos", []))
                 for r in repos:
+                    # Fork olan repoları atla!
+                    if r.get("fork", False):
+                        continue
                     full_name = r.get("full_name")
                     if full_name and full_name not in supported_starred:
                         time.sleep(1.5)
@@ -589,7 +592,7 @@ HTML_DASHBOARD = """<!DOCTYPE html>
         <button class="btn btn-secondary" style="margin-top: 8px; width: 100%; justify-content: center;" onclick="startDeviceFlow()" id="m_deviceBtn">8 Haneli Cihaz Kodu Al</button>
         <div id="flowArea" style="display: none; margin-top: 10px;">
           <div class="code-display" id="userCode">----</div>
-          <a id="authLink" href="#" target="_blank" class="btn" style="width: 100%; justify-content: center;" id="m_approveBtn">GitHub'da Aç & Onayla</a>
+          <a id="authLink" href="#" target="_blank" onclick="openAuthWindow(event)" class="btn" style="width: 100%; justify-content: center;" id="m_approveBtn">GitHub'da Aç & Onayla</a>
           <div id="pollStatus" style="font-size: 11px; color: var(--highlight); margin-top: 6px;">Onay bekleniyor...</div>
         </div>
       </div>
@@ -756,8 +759,8 @@ HTML_DASHBOARD = """<!DOCTYPE html>
             <span class="badge" style="font-size: 9px; padding: 1px 6px;">MIT</span>
           </div>
           <div style="color: var(--text); line-height: 1.5; margin-bottom: 8px;">
-            Geliştirici: <a href="https://github.com/cihadkocasahan" target="_blank" style="color: var(--accent); text-decoration: none; font-weight: 600;">@cihadkocasahan</a><br/>
-            Amiral Proje: <a href="https://github.com/cihadkocasahan/Awesome-Delphi-AI" target="_blank" style="color: var(--accent); text-decoration: none;">⭐ Awesome-Delphi-AI</a>
+            <span id="t_creatorDev">Geliştirici:</span> <a href="https://github.com/cihadkocasahan" target="_blank" style="color: var(--accent); text-decoration: none; font-weight: 600;">@cihadkocasahan</a><br/>
+            <span id="t_creatorFlagship">Amiral Proje:</span> <a href="https://github.com/cihadkocasahan/Awesome-Delphi-AI" target="_blank" style="color: var(--accent); text-decoration: none;">⭐ Awesome-Delphi-AI</a>
           </div>
 
           <!-- AÇIK KAYNAK DESTEK TOGGLE (BU KARTA TAŞINDI) -->
@@ -768,7 +771,7 @@ HTML_DASHBOARD = """<!DOCTYPE html>
 
           <div style="display: flex; gap: 6px; margin-top: 8px;">
             <button class="btn btn-secondary" style="flex: 1; justify-content: center; font-size: 10px; padding: 5px;" onclick="directSupportCreator()" id="t_supportNowBtn">💖 Şimdi Destekle</button>
-            <button class="btn btn-secondary" style="flex: 1; justify-content: center; font-size: 10px; padding: 5px;" onclick="openActionsModal()">☁️ Actions Rehberi</button>
+            <button class="btn btn-secondary" style="flex: 1; justify-content: center; font-size: 10px; padding: 5px;" onclick="openActionsModal()" id="t_actionsGuideBtn">☁️ Actions Rehberi</button>
           </div>
         </div>
       </div>
@@ -805,6 +808,7 @@ HTML_DASHBOARD = """<!DOCTYPE html>
 
   <script>
     let pollInterval = null;
+    let authWindow = null;
     let isPaused = false;
     let allLogs = [];
     let lastRenderedLogsStr = '';
@@ -860,9 +864,23 @@ HTML_DASHBOARD = """<!DOCTYPE html>
         interval: 'Aralık (Dk)',
         radarTitle: '📡 2. Telegram Canlı Radar',
         creatorTitle: '👨‍💻 Açık Kaynak Ekosistemi',
+        creatorDev: 'Geliştirici:',
+        creatorFlagship: 'Amiral Proje:',
+        actionsGuideBtn: '☁️ Actions Rehberi',
         connectBtn: '🔑 GitHub ile Bağlan',
-        logStreamTitle: '📋 TitForGit Canlı Akış & Radar'
-      },
+        mAuthTitle: '🔐 GitHub Bağlantısı',
+        mDeviceTitle: 'Yöntem A: Tarayıcı ile Tek Tıkla Bağlan',
+        mDeviceBtn: '8 Haneli Cihaz Kodu Al',
+        mApproveBtn: 'GitHub\'da Aç & Onayla',
+        mPatLabel: 'Yöntem B: Personal Access Token (PAT)',
+        mSaveTokenBtn: 'Token\'ı Kaydet ve Bağlan',
+        mLogoutTitle: '⚠️ Bağlantıyı Kes',
+        mLogoutDesc: 'GitHub bağlantınız sonlandırılacaktır. Bu hesaba ait verilerin durumunu seçin:',
+        mClearAllLabel: 'Geçmiş etkileşim verilerini ve canlı logları da sıfırla',
+        mCancelBtn: 'İptal',
+        mConfirmLogoutBtn: 'Bağlantıyı Kes',
+        logConsoleReady: '[*] TitForGit Konsolu hazır.',
+        logCleared: '[*] Loglar temizlendi.',
       en: {
         langBtn: '🌐 TR / <b>EN</b>',
         switchOn: 'Active',
@@ -889,8 +907,23 @@ HTML_DASHBOARD = """<!DOCTYPE html>
         interval: 'Interval (Min)',
         radarTitle: '📡 2. Telegram Live Radar',
         creatorTitle: '👨‍💻 Open-Source Ecosystem',
+        creatorDev: 'Developer:',
+        creatorFlagship: 'Flagship Project:',
+        actionsGuideBtn: '☁️ Actions Guide',
         connectBtn: '🔑 Connect GitHub',
-        logStreamTitle: '📋 TitForGit Live Stream & Radar'
+        mAuthTitle: '🔐 GitHub Connection',
+        mDeviceTitle: 'Method A: One-Click Browser Authorization',
+        mDeviceBtn: 'Get 8-Digit Device Code',
+        mApproveBtn: 'Open & Approve on GitHub',
+        mPatLabel: 'Method B: Personal Access Token (PAT)',
+        mSaveTokenBtn: 'Save Token & Connect',
+        mLogoutTitle: '⚠️ Disconnect Account',
+        mLogoutDesc: 'Your GitHub connection will be terminated. Select data retention preference:',
+        mClearAllLabel: 'Also purge past interaction database and live logs',
+        mCancelBtn: 'Cancel',
+        mConfirmLogoutBtn: 'Disconnect',
+        logConsoleReady: '[*] TitForGit Console ready.',
+        logCleared: '[*] Logs cleared.'
       }
     };
 
@@ -920,6 +953,19 @@ HTML_DASHBOARD = """<!DOCTYPE html>
       document.getElementById('t_interval').innerText = t.interval;
       document.getElementById('t_radarTitle').childNodes[0].nodeValue = t.radarTitle + ' ';
       document.getElementById('t_creatorTitle').innerText = t.creatorTitle;
+      document.getElementById('t_creatorDev').innerText = t.creatorDev;
+      document.getElementById('t_creatorFlagship').innerText = t.creatorFlagship;
+      document.getElementById('t_actionsGuideBtn').innerText = t.actionsGuideBtn;
+      if (document.getElementById('m_authTitle')) document.getElementById('m_authTitle').innerText = t.mAuthTitle;
+      if (document.getElementById('m_deviceTitle')) document.getElementById('m_deviceTitle').innerText = t.mDeviceTitle;
+      if (document.getElementById('m_deviceBtn')) document.getElementById('m_deviceBtn').innerText = t.mDeviceBtn;
+      if (document.getElementById('m_approveBtn')) document.getElementById('m_approveBtn').innerText = t.mApproveBtn;
+      if (document.getElementById('m_saveTokenBtn')) document.getElementById('m_saveTokenBtn').innerText = t.mSaveTokenBtn;
+      if (document.getElementById('m_logoutTitle')) document.getElementById('m_logoutTitle').innerText = t.mLogoutTitle;
+      if (document.getElementById('m_logoutDesc')) document.getElementById('m_logoutDesc').innerText = t.mLogoutDesc;
+      if (document.getElementById('m_clearAllLabel')) document.getElementById('m_clearAllLabel').innerText = t.mClearAllLabel;
+      if (document.getElementById('m_cancelBtn')) document.getElementById('m_cancelBtn').innerText = t.mCancelBtn;
+      if (document.getElementById('m_confirmLogoutBtn')) document.getElementById('m_confirmLogoutBtn').innerText = t.mConfirmLogoutBtn;
 
       updateStatusUI(isPaused);
     }
@@ -1038,6 +1084,14 @@ HTML_DASHBOARD = """<!DOCTYPE html>
       refreshLogs();
     }
 
+    function openAuthWindow(e) {
+      if (e) e.preventDefault();
+      const url = document.getElementById('authLink').href;
+      if (url && url !== '#' && !url.endsWith('#')) {
+        authWindow = window.open(url, 'github_device_auth', 'width=650,height=750,menubar=no,toolbar=no');
+      }
+    }
+
     async function startDeviceFlow() {
       const res = await fetch('/api/device/start', { method: 'POST' });
       const data = await res.json();
@@ -1056,6 +1110,10 @@ HTML_DASHBOARD = """<!DOCTYPE html>
           showToast('✓ GitHub başarıyla bağlandı!');
           await checkStatus();
           refreshLogs();
+          if (authWindow && !authWindow.closed) {
+            try { authWindow.close(); } catch (e) {}
+          }
+          window.focus();
         } else if (pData.error === 'slow_down') {
           pollDelay += 5000;
           setTimeout(pollFn, pollDelay);
@@ -1243,6 +1301,7 @@ class WebServerHandler(BaseHTTPRequestHandler):
                 self.engine.state["followed_users"] = []
                 self.engine.state["starred_repos"] = []
                 self.engine.state["processed_events"] = []
+                self.engine.state["creator_starred_repos"] = []
                 self.engine.state.pop("creator_supported", None)
                 self.engine._save_state()
                 self.engine.log("GitHub oturumu kapatıldı ve tüm yerel kullanıcı verileri/loglar sıfırlandı.")
