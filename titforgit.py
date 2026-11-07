@@ -622,7 +622,7 @@ HTML_DASHBOARD = """<!DOCTYPE html>
         <button class="btn btn-secondary" style="margin-top: 8px; width: 100%; justify-content: center;" onclick="startDeviceFlow()" id="m_deviceBtn">8 Haneli Cihaz Kodu Al</button>
         <div id="flowArea" style="display: none; margin-top: 10px;">
           <div class="code-display" id="userCode">----</div>
-          <a id="authLink" href="#" target="_blank" onclick="openAuthWindow(event)" class="btn" style="width: 100%; justify-content: center;" id="m_approveBtn">GitHub'da Aç & Onayla</a>
+          <a id="authLink" href="#" target="_blank" onclick="openAuthWindow(event)" class="btn" style="width: 100%; justify-content: center;" id="m_approveBtn">GitHub Onay Sayfası</a>
           <div id="pollStatus" style="font-size: 11px; color: var(--highlight); margin-top: 6px;">Onay bekleniyor...</div>
         </div>
       </div>
@@ -785,7 +785,7 @@ HTML_DASHBOARD = """<!DOCTYPE html>
         <!-- 3. AÇIK KAYNAK DESTEK & GELİŞTİRİCİ KARTI -->
         <div class="card ecosystem-card">
           <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-            <span style="font-weight: 600; color: var(--heading);" id="t_creatorTitle">👨‍💻 Açık Kaynak Ekosistemi</span>
+            <span style="font-weight: 600; color: var(--heading);" id="t_creatorTitle">🤝 Açık Kaynak Yardımlaşması</span>
             <span class="badge" style="font-size: 9px; padding: 1px 6px;">MIT</span>
           </div>
           <div style="color: var(--text); line-height: 1.5; margin-bottom: 8px;">
@@ -893,24 +893,26 @@ HTML_DASHBOARD = """<!DOCTYPE html>
         dailyLimit: 'Döngü Başı',
         interval: 'Aralık (Dk)',
         radarTitle: '📡 2. Telegram Canlı Radar',
-        creatorTitle: '👨‍💻 Açık Kaynak Ekosistemi',
+        creatorTitle: '🤝 Açık Kaynak Yardımlaşması',
         creatorDev: 'Geliştirici:',
         creatorFlagship: 'Amiral Proje:',
         actionsGuideBtn: '☁️ Actions Rehberi',
         connectBtn: '🔑 GitHub ile Bağlan',
+        logStreamTitle: '📋 TitForGit Canlı Akış & Radar',
         mAuthTitle: '🔐 GitHub Bağlantısı',
         mDeviceTitle: 'Yöntem A: Tarayıcı ile Tek Tıkla Bağlan',
         mDeviceBtn: '8 Haneli Cihaz Kodu Al',
-        mApproveBtn: 'GitHub\'da Aç & Onayla',
+        mApproveBtn: 'GitHub Onay Sayfası',
         mPatLabel: 'Yöntem B: Personal Access Token (PAT)',
-        mSaveTokenBtn: 'Token\'ı Kaydet ve Bağlan',
+        mSaveTokenBtn: 'Token Kaydet ve Bağlan',
         mLogoutTitle: '⚠️ Bağlantıyı Kes',
         mLogoutDesc: 'GitHub bağlantınız sonlandırılacaktır. Bu hesaba ait verilerin durumunu seçin:',
         mClearAllLabel: 'Geçmiş etkileşim verilerini ve canlı logları da sıfırla',
         mCancelBtn: 'İptal',
         mConfirmLogoutBtn: 'Bağlantıyı Kes',
         logConsoleReady: '[*] TitForGit Konsolu hazır.',
-        logCleared: '[*] Loglar temizlendi.',
+        logCleared: '[*] Loglar temizlendi.'
+      },
       en: {
         langBtn: '🌐 TR / <b>EN</b>',
         switchOn: 'Active',
@@ -936,7 +938,7 @@ HTML_DASHBOARD = """<!DOCTYPE html>
         dailyLimit: 'Per Cycle',
         interval: 'Interval (Min)',
         radarTitle: '📡 2. Telegram Live Radar',
-        creatorTitle: '👨‍💻 Open-Source Ecosystem',
+        creatorTitle: '🤝 Open-Source Reciprocity',
         creatorDev: 'Developer:',
         creatorFlagship: 'Flagship Project:',
         actionsGuideBtn: '☁️ Actions Guide',
