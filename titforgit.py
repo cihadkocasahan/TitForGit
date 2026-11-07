@@ -176,6 +176,7 @@ class TitForGitEngine:
             "followed_users": [],
             "starred_repos": [],
             "last_run": None,
+            "is_paused": False,
             "logs": []
         }
 
@@ -193,7 +194,10 @@ class TitForGitEngine:
         self.state.setdefault("logs", []).insert(0, entry)
         self.state["logs"] = self.state["logs"][:100]
 
-    def run_cycle(self):
+    def run_cycle(self, force: bool = False):
+        if not force and self.state.get("is_paused", False):
+            return
+
         if not self.config.get("github_token"):
             self.log("Beklemede: GITHUB_TOKEN henüz ayarlanmadı.")
             return
@@ -335,134 +339,157 @@ HTML_DASHBOARD = """<!DOCTYPE html>
   <title>TitForGit Control Deck</title>
   <style>
     :root {
-      --bg: #0d1117; --panel: #161b22; --border: #30363d;
+      --bg: #090d13; --panel: #161b22; --border: #30363d;
       --accent: #238636; --accent-hover: #2ea043; --text: #c9d1d9;
       --heading: #f0f6fc; --highlight: #58a6ff; --danger: #da3633;
+      --warning: #d29922;
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-    body { background: var(--bg); color: var(--text); padding: 24px; line-height: 1.5; }
-    .container { max-width: 860px; margin: 0 auto; }
-    .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; border-bottom: 1px solid var(--border); padding-bottom: 16px; }
-    .title { font-size: 24px; font-weight: 700; color: var(--heading); display: flex; align-items: center; gap: 10px; }
-    .badge { background: #1f6feb26; color: var(--highlight); font-size: 12px; padding: 4px 10px; border-radius: 12px; border: 1px solid #1f6feb66; }
-    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-    @media (max-width: 720px) { .grid { grid-template-columns: 1fr; } }
-    .card { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 20px; margin-bottom: 20px; }
-    .card-title { font-size: 16px; font-weight: 600; color: var(--heading); margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
-    label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px; color: var(--text); }
-    input[type="text"], input[type="password"] {
-      width: 100%; background: #0d1117; border: 1px solid var(--border); border-radius: 6px;
-      padding: 8px 12px; color: var(--heading); font-size: 14px; margin-bottom: 14px;
-    }
-    input:focus { outline: none; border-color: var(--highlight); }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background: var(--bg); color: var(--text); padding: 20px; line-height: 1.4; height: 100vh; overflow: hidden; }
+    
+    .layout { display: flex; gap: 20px; height: calc(100vh - 40px); max-width: 1300px; margin: 0 auto; }
+    @media (max-width: 860px) { body { height: auto; overflow: auto; } .layout { flex-direction: column; height: auto; } }
+
+    /* SOL PANEL: AYARLAR (380px Dikey) */
+    .sidebar { width: 400px; flex-shrink: 0; display: flex; flex-direction: column; gap: 16px; overflow-y: auto; padding-right: 4px; }
+    
+    /* ORTA/SAĞ PANEL: CANLI LOGLAR VE BAŞLIK */
+    .main-view { flex-grow: 1; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+    
+    .card { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+    .card-title { font-size: 14px; font-weight: 600; color: var(--heading); margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; }
+    
+    .header-bar { display: flex; align-items: center; justify-content: space-between; padding: 12px 18px; }
+    .brand { font-size: 20px; font-weight: 700; color: var(--heading); display: flex; align-items: center; gap: 8px; }
+    .badge { background: #1f6feb26; color: var(--highlight); font-size: 11px; padding: 3px 8px; border-radius: 12px; border: 1px solid #1f6feb66; }
+    
+    .btn-group { display: flex; gap: 10px; }
     .btn {
-      background: var(--accent); color: #fff; border: none; border-radius: 6px; padding: 10px 16px;
-      font-size: 14px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+      background: var(--accent); color: #fff; border: none; border-radius: 6px; padding: 8px 14px;
+      font-size: 13px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
     }
     .btn:hover { background: var(--accent-hover); }
     .btn-secondary { background: #21262d; border: 1px solid var(--border); color: var(--text); }
     .btn-secondary:hover { background: #30363d; color: var(--heading); }
-    .auth-box { background: #0d1117; border: 1px dashed var(--border); border-radius: 6px; padding: 16px; text-align: center; margin-bottom: 14px; }
-    .code-display { font-family: monospace; font-size: 28px; font-weight: 700; color: #3fb950; letter-spacing: 4px; margin: 12px 0; }
-    .log-box { background: #0d1117; border: 1px solid var(--border); border-radius: 6px; padding: 12px; height: 180px; overflow-y: auto; font-family: monospace; font-size: 12px; color: #8b949e; }
-    .log-entry { margin-bottom: 4px; }
-    .toggle-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .btn-pause { background: #21262d; border: 1px solid var(--warning); color: var(--warning); }
+    .btn-pause:hover { background: #d2992222; }
 
-    /* Modern Toast Bildirimi (0 KB Dış Bağımlılık) */
+    label { display: block; font-size: 12px; font-weight: 500; margin-bottom: 4px; color: var(--text); }
+    input[type="text"], input[type="password"] {
+      width: 100%; background: #0d1117; border: 1px solid var(--border); border-radius: 6px;
+      padding: 7px 10px; color: var(--heading); font-size: 13px; margin-bottom: 10px;
+    }
+    input:focus { outline: none; border-color: var(--highlight); }
+
+    .toggle-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; font-size: 13px; }
+    
+    .auth-box { background: #0d1117; border: 1px dashed var(--border); border-radius: 6px; padding: 12px; text-align: center; margin-bottom: 12px; }
+    .code-display { font-family: monospace; font-size: 22px; font-weight: 700; color: #3fb950; letter-spacing: 3px; margin: 8px 0; }
+
+    /* GENİŞ CANLI LOG ALANI */
+    .log-card { flex-grow: 1; display: flex; flex-direction: column; min-height: 300px; }
+    .log-terminal {
+      flex-grow: 1; background: #06090f; border: 1px solid var(--border); border-radius: 6px;
+      padding: 14px; overflow-y: auto; font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      font-size: 12px; line-height: 1.6; color: #8b949e;
+    }
+    .log-entry { margin-bottom: 4px; word-break: break-all; }
+    .log-entry.star { color: #f2cc60; }
+    .log-entry.follow { color: #58a6ff; }
+    .log-entry.success { color: #3fb950; }
+
     .toast {
-      position: fixed; bottom: 24px; right: 24px; background: #238636; color: #fff;
-      padding: 12px 20px; border-radius: 8px; font-size: 14px; font-weight: 600;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.5); opacity: 0; transform: translateY(20px);
-      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); pointer-events: none; z-index: 1000;
-      display: flex; align-items: center; gap: 8px; border: 1px solid #3fb95066;
+      position: fixed; bottom: 20px; right: 20px; background: #238636; color: #fff;
+      padding: 10px 18px; border-radius: 6px; font-size: 13px; font-weight: 600;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.6); opacity: 0; transform: translateY(15px);
+      transition: all 0.25s ease; pointer-events: none; z-index: 1000;
     }
     .toast.show { opacity: 1; transform: translateY(0); pointer-events: auto; }
-    .toast.error { background: #da3633; border-color: #f8514966; }
+    .toast.error { background: #da3633; }
   </style>
 </head>
 <body>
   <div id="toast" class="toast">✓ İşlem başarılı</div>
-  <div class="container">
-    <div class="header">
-      <div class="title">⚡ TitForGit <span class="badge">v1.0.0 Self-Hosted</span></div>
-      <button class="btn" onclick="triggerRun()">▶ Şimdi Çalıştır</button>
-    </div>
-
-    <div class="grid">
-      <!-- 1. GİRİŞ & YETKİLENDİRME (DUAL AUTH) -->
+  
+  <div class="layout">
+    <!-- SOL: DİKEY AYARLAR PANELİ -->
+    <div class="sidebar">
+      <!-- 1. GİRİŞ -->
       <div class="card">
-        <div class="card-title">🔐 1. GitHub Yetkilendirmesi</div>
-        <p style="font-size: 12px; color: #8b949e; margin-bottom: 12px;">İki yöntemden birini seçebilirsiniz:</p>
-        
-        <div class="auth-box" id="deviceAuthBox">
-          <div style="font-size: 13px; font-weight: 500;">Yöntem A: Tarayıcı ile Tek Tıkla Bağlan</div>
-          <button class="btn btn-secondary" style="margin-top: 10px;" onclick="startDeviceFlow()">Cihaz Kodu Üret</button>
-          <div id="flowArea" style="display: none; margin-top: 12px;">
-            <p style="font-size: 12px;">1. Kodu kopyalayın:</p>
+        <div class="card-title">🔐 1. GitHub Girişi</div>
+        <div class="auth-box">
+          <div style="font-size: 12px; font-weight: 500;">Tarayıcı ile Tek Tıkla Bağlan</div>
+          <button class="btn btn-secondary" style="margin-top: 8px; width: 100%; justify-content: center;" onclick="startDeviceFlow()">Cihaz Kodu Üret</button>
+          <div id="flowArea" style="display: none; margin-top: 10px;">
             <div class="code-display" id="userCode">----</div>
-            <p style="font-size: 12px;">2. GitHub sayfasında onaylayın:</p>
-            <a id="authLink" href="#" target="_blank" class="btn" style="margin-top: 8px;">GitHub'da Aç & Onayla</a>
-            <div id="pollStatus" style="font-size: 12px; color: var(--highlight); margin-top: 10px;">Onay bekleniyor...</div>
+            <a id="authLink" href="#" target="_blank" class="btn" style="width: 100%; justify-content: center; margin-top: 4px;">GitHub'da Aç & Onayla</a>
+            <div id="pollStatus" style="font-size: 11px; color: var(--highlight); margin-top: 6px;">Onay bekleniyor...</div>
           </div>
         </div>
-
-        <div style="font-size: 13px; font-weight: 500; margin-bottom: 6px;">Yöntem B: Doğrudan PAT Token</div>
+        <label>Veya PAT Token Yapıştır</label>
         <input type="password" id="ghToken" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" />
       </div>
 
-      <!-- 2. TELEGRAM RADAR -->
+      <!-- 2. BÜYÜME VE HEDEFLER -->
       <div class="card">
-        <div class="card-title">📡 2. Telegram Canlı Radar</div>
-        <label>Telegram Bot Token</label>
-        <input type="text" id="tgBotToken" placeholder="123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11" />
-        <label>Telegram Chat ID</label>
-        <input type="text" id="tgChatId" placeholder="6777703978" />
-        <button class="btn btn-secondary" onclick="showToast('✓ Test bildirimi Telegram ayarları kaydedilince aktiftir.')">Test</button>
+        <div class="card-title">🎯 2. Büyüme Kuralları</div>
+        <div class="toggle-row">
+          <span>🤝 Smart Follow-Back</span>
+          <input type="checkbox" id="autoFollow" checked />
+        </div>
+        <div class="toggle-row">
+          <span>🎯 Organik Niş Keşif (Star)</span>
+          <input type="checkbox" id="nicheEnabled" checked />
+        </div>
+        <div class="toggle-row">
+          <span>👤 Repo Sahibini Takip Et</span>
+          <input type="checkbox" id="followOwner" checked />
+        </div>
+        <label style="margin-top: 8px;">Hedef Konular</label>
+        <input type="text" id="targetTopics" value="delphi, mcp, python-agent" />
+        <div style="display: flex; gap: 8px;">
+          <div><label>Min ★</label><input type="text" id="minStars" value="5" /></div>
+          <div><label>Max ★</label><input type="text" id="maxStars" value="150" /></div>
+          <div><label>Döngü Başı</label><input type="text" id="dailyLimit" value="2" /></div>
+        </div>
+      </div>
+
+      <!-- 3. TELEGRAM RADAR & KAYDET -->
+      <div class="card">
+        <div class="card-title">📡 3. Telegram Radarı</div>
+        <input type="text" id="tgBotToken" placeholder="Bot Token (Opsiyonel)" />
+        <input type="text" id="tgChatId" placeholder="Chat ID (Opsiyonel)" />
+        <button class="btn" style="width: 100%; justify-content: center; margin-top: 4px;" onclick="saveConfig()">💾 Ayarları Kaydet</button>
       </div>
     </div>
 
-    <!-- 3. STRATEJİ & HEDEFLER -->
-    <div class="card">
-      <div class="card-title">🎯 3. Büyüme & Karşılıklılık (Tit-for-Tat) Kuralları</div>
-      <div class="grid">
-        <div>
-          <div class="toggle-row">
-            <span>🤝 Smart Follow-Back (Geri Takip)</span>
-            <input type="checkbox" id="autoFollow" checked />
-          </div>
-          <div class="toggle-row">
-            <span>🎯 Organik Niş Keşif (Star Etkileşimi)</span>
-            <input type="checkbox" id="nicheEnabled" checked />
-          </div>
-          <div class="toggle-row">
-            <span>👤 Keşfedilen Repo Sahibini Takip Et</span>
-            <input type="checkbox" id="followOwner" checked />
-          </div>
+    <!-- ORTA / SAĞ: BAŞLIK VE GENİŞ LOG EKRANI -->
+    <div class="main-view">
+      <div class="card header-bar">
+        <div class="brand">
+          ⚡ TitForGit <span class="badge">v1.0.0 Self-Hosted</span>
         </div>
-        <div>
-          <label>Hedef Konular (Virgülle ayırın)</label>
-          <input type="text" id="targetTopics" value="delphi, mcp, python-agent, rust" />
-          <div style="display: flex; gap: 10px;">
-            <div><label>Min Star</label><input type="text" id="minStars" value="5" /></div>
-            <div><label>Max Star</label><input type="text" id="maxStars" value="150" /></div>
-            <div><label>Döngü Başı Star</label><input type="text" id="dailyLimit" value="2" /></div>
-          </div>
+        <div class="btn-group">
+          <button id="toggleBtn" class="btn btn-pause" onclick="togglePatrol()">⏸ Devriyeyi Durdur</button>
+          <button class="btn" onclick="triggerRun()">▶ Şimdi Çalıştır</button>
         </div>
       </div>
-      <button class="btn" style="margin-top: 12px;" onclick="saveConfig()">💾 Ayarları Kaydet</button>
-    </div>
 
-    <!-- CANLI LOGLAR -->
-    <div class="card">
-      <div class="card-title">📋 Canlı Devriye Logları</div>
-      <div class="log-box" id="logBox">
-        <div class="log-entry">[*] TitForGit Dashboard hazır.</div>
+      <div class="card log-card">
+        <div class="card-title">
+          <span>📋 Canlı Devriye Logları & Radar</span>
+          <span id="patrolBadge" style="font-size: 11px; color: #3fb950;">● Devriye Aktif (1 saatte bir)</span>
+        </div>
+        <div class="log-terminal" id="logBox">
+          <div class="log-entry">[*] TitForGit Konsolu hazır.</div>
+        </div>
       </div>
     </div>
   </div>
 
   <script>
     let pollInterval = null;
+    let isPaused = false;
 
     function showToast(msg, isError = false) {
       const t = document.getElementById('toast');
@@ -481,6 +508,35 @@ HTML_DASHBOARD = """<!DOCTYPE html>
       document.getElementById('nicheEnabled').checked = !!cfg.niche_discovery_enabled;
       document.getElementById('followOwner').checked = !!cfg.follow_target_owner;
       if (cfg.target_topics) document.getElementById('targetTopics').value = cfg.target_topics.join(', ');
+      
+      const sRes = await fetch('/api/status');
+      const sData = await sRes.json();
+      updateStatusUI(sData.is_paused);
+      refreshLogs();
+    }
+
+    function updateStatusUI(paused) {
+      isPaused = paused;
+      const btn = document.getElementById('toggleBtn');
+      const badge = document.getElementById('patrolBadge');
+      if (isPaused) {
+        btn.innerText = '▶ Devriyeyi Başlat';
+        btn.className = 'btn';
+        badge.innerText = '○ Devriye Duraklatıldı';
+        badge.style.color = '#8b949e';
+      } else {
+        btn.innerText = '⏸ Devriyeyi Durdur';
+        btn.className = 'btn btn-pause';
+        badge.innerText = '● Devriye Aktif (1 saatte bir)';
+        badge.style.color = '#3fb950';
+      }
+    }
+
+    async function togglePatrol() {
+      const res = await fetch('/api/toggle', { method: 'POST' });
+      const data = await res.json();
+      updateStatusUI(data.is_paused);
+      showToast(data.is_paused ? '⏸ Devriye durduruldu' : '▶ Devriye başlatıldı');
       refreshLogs();
     }
 
@@ -498,7 +554,7 @@ HTML_DASHBOARD = """<!DOCTYPE html>
         daily_star_limit: parseInt(document.getElementById('dailyLimit').value) || 2
       };
       await fetch('/api/config', { method: 'POST', body: JSON.stringify(payload) });
-      showToast('✓ Ayarlar başarıyla kaydedildi!');
+      showToast('✓ Ayarlar kaydedildi!');
       refreshLogs();
     }
 
@@ -510,19 +566,16 @@ HTML_DASHBOARD = """<!DOCTYPE html>
       document.getElementById('authLink').href = data.verification_uri;
       document.getElementById('flowArea').style.display = 'block';
 
-      if (pollInterval) clearInterval(pollInterval);
       let pollDelay = (data.interval || 5) * 1000;
-      
       const pollFn = async () => {
         const pRes = await fetch(`/api/device/poll?device_code=${data.device_code}`);
         const pData = await pRes.json();
         if (pData.access_token) {
           document.getElementById('ghToken').value = pData.access_token;
-          document.getElementById('pollStatus').innerText = '✓ Başarıyla bağlandı ve kaydedildi!';
+          document.getElementById('pollStatus').innerText = '✓ Bağlandı!';
           document.getElementById('pollStatus').style.color = '#3fb950';
           saveConfig();
         } else if (pData.error === 'slow_down') {
-          // GitHub rate limit koruması: aralığı 5 saniye artır ve devam et
           pollDelay += 5000;
           setTimeout(pollFn, pollDelay);
         } else if (pData.error === 'authorization_pending') {
@@ -531,7 +584,6 @@ HTML_DASHBOARD = """<!DOCTYPE html>
           document.getElementById('pollStatus').innerText = 'Hata: ' + pData.error;
         }
       };
-      
       setTimeout(pollFn, pollDelay);
     }
 
@@ -545,10 +597,16 @@ HTML_DASHBOARD = """<!DOCTYPE html>
       const res = await fetch('/api/logs');
       const data = await res.json();
       const box = document.getElementById('logBox');
-      box.innerHTML = data.logs.map(l => `<div class="log-entry">${l}</div>`).join('');
+      box.innerHTML = data.logs.map(l => {
+        let cls = 'log-entry';
+        if (l.includes('Star')) cls += ' star';
+        else if (l.includes('takip')) cls += ' follow';
+        else if (l.includes('tamamlandı') || l.includes('devrede')) cls += ' success';
+        return `<div class="${cls}">${l}</div>`;
+      }).join('');
     }
 
-    setInterval(refreshLogs, 5000);
+    setInterval(refreshLogs, 4000);
     window.onload = loadConfig;
   </script>
 </body>
@@ -573,6 +631,11 @@ class WebServerHandler(BaseHTTPRequestHandler):
             self.wfile.write(HTML_DASHBOARD.encode("utf-8"))
         elif parsed.path == "/api/config":
             self._send_json(self.engine.config)
+        elif parsed.path == "/api/status":
+            self._send_json({
+                "is_paused": bool(self.engine.state.get("is_paused", False)),
+                "last_run": self.engine.state.get("last_run")
+            })
         elif parsed.path == "/api/logs":
             self._send_json({"logs": self.engine.state.get("logs", [])})
         elif parsed.path == "/api/device/poll":
@@ -600,8 +663,15 @@ class WebServerHandler(BaseHTTPRequestHandler):
             res = GitHubDeviceAuth.start_flow()
             self._send_json(res or {"error": "Device flow failed"})
         elif self.path == "/api/run":
-            threading.Thread(target=self.engine.run_cycle).start()
+            threading.Thread(target=lambda: self.engine.run_cycle(force=True)).start()
             self._send_json({"status": "started"})
+        elif self.path == "/api/toggle":
+            current = self.engine.state.get("is_paused", False)
+            self.engine.state["is_paused"] = not current
+            self.engine._save_state()
+            state_text = "DURDURULDU" if self.engine.state["is_paused"] else "BAŞLATILDI"
+            self.engine.log(f"Devriye nöbeti {state_text}.")
+            self._send_json({"is_paused": self.engine.state["is_paused"]})
         else:
             self.send_error(404)
 
