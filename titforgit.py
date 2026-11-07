@@ -230,7 +230,7 @@ class TitForGitEngine:
         # 1. Activity Radar (Gelen Star, Fork, Takip Bildirimleri)
         self._check_radar_events(username)
 
-        # 2. Smart Follow-Back (Seni takip edeni geri takip et)
+        # 2. Smart Follow-Back (Seni takip edeni geri takip et / Karşılık Dürtmesi)
         if self.config.get("auto_follow_back", True):
             self._process_follow_back(username)
 
@@ -299,9 +299,9 @@ class TitForGitEngine:
                 delay = random.uniform(5.0, 15.0)
                 time.sleep(delay)
                 if self.gh.follow_user(f_login):
-                    self.log(f"Geri takip yapıldı: @{f_login}")
+                    self.log(f"Karşılık Dürtmesi (Follow-Back): @{f_login}")
                     self.state.setdefault("followed_users", []).append(f_login)
-                    self.notifier.send_message(f"🤝 <b>Geri Takip (Follow-Back)</b>\n👤 <b>{f_login}</b> sizi takip ettiği için geri takibe alındı.")
+                    self.notifier.send_message(f"👉 <b>Karşılık Dürtmesi (Tit-for-Tat)</b>\n👤 <b>@{f_login}</b> sizi takip ettiği için geri takibe alındı.")
                     done += 1
                     if done >= limit:
                         break
@@ -410,14 +410,20 @@ HTML_DASHBOARD = """<!DOCTYPE html>
     }
     body.light-theme {
       --bg: #f6f8fa; --panel: #ffffff; --border: #d0d7de;
-      --accent: #1f883d; --accent-hover: #1a7f37; --text: #57606a;
-      --heading: #24292f; --highlight: #0969da; --danger: #cf222e;
-      --warning: #9a6700; --input-bg: #ffffff;
+      --accent: #1f883d; --accent-hover: #1a7f37; --text: #24292f;
+      --heading: #090d13; --highlight: #0969da; --danger: #cf222e;
+      --warning: #9a6700; --input-bg: #f6f8fa;
     }
-    body.light-theme .log-terminal { background: #ffffff !important; border-color: #d0d7de; }
+    body.light-theme .log-terminal { background: #f6f8fa !important; border-color: #d0d7de; color: #24292f !important; }
+    body.light-theme .log-entry { color: #57606a; }
+    body.light-theme .log-entry.star { color: #9a6700; font-weight: 600; }
+    body.light-theme .log-entry.follow { color: #0969da; font-weight: 600; }
+    body.light-theme .log-entry.success { color: #1a7f37; font-weight: 600; }
     body.light-theme .btn-secondary { background: #f6f8fa; border-color: #d0d7de; color: #24292f; }
     body.light-theme .btn-secondary:hover { background: #eaeef2; }
-    body.light-theme input[type="text"] { background: #ffffff; border-color: #d0d7de; color: #24292f; }
+    body.light-theme input[type="text"], body.light-theme input[type="password"] { background: #ffffff; border-color: #d0d7de; color: #24292f; }
+    body.light-theme .info-tip { background: rgba(0, 0, 0, 0.08); color: #57606a; }
+    body.light-theme .info-tip:hover::after { background: #ffffff; border-color: #d0d7de; color: #24292f; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
     /* Modern İnce Scrollbar (Webkit & Standart) */
     * {
       scrollbar-width: thin;
@@ -620,40 +626,40 @@ HTML_DASHBOARD = """<!DOCTYPE html>
     <div class="sidebar">
       <!-- 1. BÜYÜME VE HEDEFLER -->
       <div class="card">
-        <div class="card-title">🎯 1. Tit-for-Tat Kuralları</div>
+        <div class="card-title" id="t_rulesTitle">🎯 1. Tit-for-Tat Kuralları</div>
         <div class="toggle-row">
-          <span>🤝 Smart Follow-Back <span class="info-tip" data-tooltip="Sizi takip eden geliştiricileri otomatik olarak geri takip eder.">?</span></span>
+          <span>👉 <span id="t_ruleFollow">Karşılık Dürtmesi (Follow-Back)</span> <span class="info-tip" id="tip_follow" data-tooltip="Sizi takip eden geliştiricileri otomatik olarak geri dürtüp takip eder.">?</span></span>
           <input type="checkbox" id="autoFollow" checked />
         </div>
         <div class="toggle-row">
-          <span>🎯 Organik Niş Keşif (Star) <span class="info-tip" data-tooltip="Belirlediğiniz konulardaki yükselen repoları keşfedip yıldız bırakır.">?</span></span>
+          <span>⭐ <span id="t_ruleStar">Organik Niş Keşif (Star)</span> <span class="info-tip" id="tip_star" data-tooltip="Belirlediğiniz konulardaki yükselen repoları keşfedip yıldız bırakır.">?</span></span>
           <input type="checkbox" id="nicheEnabled" checked />
         </div>
         <div class="toggle-row">
-          <span>👤 Repo Sahibini Takip Et <span class="info-tip" data-tooltip="Keşfedilip yıldız verilen projenin yazarını da takibe alır.">?</span></span>
+          <span>👤 <span id="t_ruleOwner">Repo Sahibini Takip Et</span> <span class="info-tip" id="tip_owner" data-tooltip="Keşfedilip yıldız verilen projenin yazarını da takibe alır.">?</span></span>
           <input type="checkbox" id="followOwner" checked />
         </div>
         <div class="toggle-row">
-          <span>🧹 Karşılıksız Takipleri Bırak <span class="info-tip" data-tooltip="Sizi takip etmeyen kişileri döngü başı 1 kişi olmak üzere güvenli aralıklarla takipten çıkarır.">?</span></span>
+          <span>🧹 <span id="t_ruleUnfollow">Karşılıksız Takipleri Bırak</span> <span class="info-tip" id="tip_unfollow" data-tooltip="Sizi takip etmeyen kişileri döngü başı 1 kişi olmak üzere güvenli aralıklarla takipten çıkarır.">?</span></span>
           <input type="checkbox" id="unfollowNonFollowers" />
         </div>
         <div class="toggle-row">
-          <span>💖 Açık Kaynak Desteği <span class="info-tip" data-tooltip="Ücretsiz açık kaynak kullanım karşılığı @cihadkocasahan ve Awesome-Delphi-AI projesine 1 kez yıldız/takip desteği sağlar.">?</span></span>
+          <span>💖 <span id="t_ruleSupport">Açık Kaynak Desteği</span> <span class="info-tip" id="tip_support" data-tooltip="Ücretsiz açık kaynak kullanım karşılığı @cihadkocasahan ve Awesome-Delphi-AI projesine 1 kez yıldız/takip desteği sağlar.">?</span></span>
           <input type="checkbox" id="supportCreator" checked />
         </div>
-        <label style="margin-top: 8px;">Hedef Konular (Topics) <span class="info-tip" data-tooltip="Aranacak GitHub topic etiketleri. Virgülle ayırarak yazın.">?</span></label>
+        <label style="margin-top: 8px;" id="t_targetTopics">Hedef Konular (Topics) <span class="info-tip" id="tip_topics" data-tooltip="Aranacak GitHub topic etiketleri. Virgülle ayırarak yazın.">?</span></label>
         <input type="text" id="targetTopics" value="delphi, mcp, python-agent" />
         <div style="display: flex; gap: 8px;">
-          <div style="flex: 1;"><label>Min ★ <span class="info-tip" data-tooltip="Çok çöp repolara düşmemek için alt sınır.">?</span></label><input type="text" id="minStars" value="5" /></div>
-          <div style="flex: 1;"><label>Max ★ <span class="info-tip" data-tooltip="Büyük repolar yerine sizi fark edecek niş repolar için üst sınır.">?</span></label><input type="text" id="maxStars" value="150" /></div>
-          <div style="flex: 1;"><label>Döngü Başı <span class="info-tip" data-tooltip="Her çalışma turunda en fazla kaç repoya star atılacağı (anti-ban limiti).">?</span></label><input type="text" id="dailyLimit" value="2" /></div>
-          <div style="flex: 1;"><label>Aralık (Dk) <span class="info-tip" data-tooltip="Motorun kaç dakikada bir uyanıp yeni etkileşim arayacağı.">?</span></label><input type="text" id="intervalMinutes" value="60" placeholder="60" /></div>
+          <div style="flex: 1;"><label id="t_minStars">Min ★ <span class="info-tip" id="tip_min" data-tooltip="Çok çöp repolara düşmemek için alt sınır.">?</span></label><input type="text" id="minStars" value="5" /></div>
+          <div style="flex: 1;"><label id="t_maxStars">Max ★ <span class="info-tip" id="tip_max" data-tooltip="Büyük repolar yerine sizi fark edecek niş repolar için üst sınır.">?</span></label><input type="text" id="maxStars" value="150" /></div>
+          <div style="flex: 1;"><label id="t_dailyLimit">Döngü Başı <span class="info-tip" id="tip_limit" data-tooltip="Her çalışma turunda en fazla kaç repoya star atılacağı (anti-ban limiti).">?</span></label><input type="text" id="dailyLimit" value="2" /></div>
+          <div style="flex: 1;"><label id="t_interval">Aralık (Dk) <span class="info-tip" id="tip_interval" data-tooltip="Motorun kaç dakikada bir uyanıp yeni etkileşim arayacağı.">?</span></label><input type="text" id="intervalMinutes" value="60" placeholder="60" /></div>
         </div>
       </div>
 
       <!-- 2. TELEGRAM RADAR & KAYDET -->
       <div class="card">
-        <div class="card-title">📡 2. Telegram Canlı Radar <span class="info-tip" data-tooltip="Gelen yıldız, takip ve fork olaylarını anında Telegram'a iletir. Boş bırakırsanız sadece yerel log tutar.">?</span></div>
+        <div class="card-title" id="t_radarTitle">📡 2. Telegram Canlı Radar <span class="info-tip" id="tip_radar" data-tooltip="Gelen yıldız, takip ve fork olaylarını anında Telegram'a iletir. Boş bırakırsanız sadece yerel log tutar.">?</span></div>
         <input type="text" id="tgBotToken" placeholder="Bot Token (Opsiyonel @BotFather)" />
         <input type="text" id="tgChatId" placeholder="Chat ID (Opsiyonel)" />
         <button class="btn" id="saveBtn" style="width: 100%; justify-content: center; margin-top: 4px;" onclick="saveConfig()">💾 Ayarları Kaydet</button>
@@ -662,10 +668,10 @@ HTML_DASHBOARD = """<!DOCTYPE html>
       <!-- 3. GELİŞTİRİCİ KÜNYESİ & AÇIK KAYNAK DESTEK KARTI -->
       <div class="card" style="background: rgba(22, 27, 34, 0.6); border: 1px dashed var(--border); padding: 12px; font-size: 11px;">
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-          <span style="font-weight: 600; color: var(--heading);">👨‍💻 Açık Kaynak Ekosistemi</span>
+          <span style="font-weight: 600; color: var(--heading);" id="t_creatorTitle">👨‍💻 Açık Kaynak Ekosistemi</span>
           <span class="badge" style="font-size: 9px; padding: 1px 6px;">MIT</span>
         </div>
-        <div style="color: var(--text); line-height: 1.5; margin-bottom: 10px;">
+        <div style="color: var(--text); line-height: 1.5; margin-bottom: 10px;" id="t_creatorBody">
           Geliştirici: <a href="https://github.com/cihadkocasahan" target="_blank" style="color: var(--accent); text-decoration: none; font-weight: 600;">@cihadkocasahan</a><br/>
           Proje: <a href="https://github.com/cihadkocasahan/Awesome-Delphi-AI" target="_blank" style="color: var(--accent); text-decoration: none;">⭐ Awesome-Delphi-AI</a>
         </div>
@@ -734,11 +740,25 @@ HTML_DASHBOARD = """<!DOCTYPE html>
         badgeRunning: '● Çalışıyor',
         badgeStopped: '○ Kapalı',
         autoScroll: 'Oto-Kaydır',
-        searchPlaceholder: '🔍 Loglarda ara (star, follow, saat...)',
-        headerTitle: '⚡ TitForGit',
+        searchPlaceholder: '🔍 Loglarda ara (star, dürtme, saat...)',
         disconnectBtn: 'Bağlantıyı Kes',
         supportBtn: '💖 Şimdi Geliştiriciyi Destekle',
-        saveBtn: '💾 Ayarları Kaydet'
+        saveBtn: '💾 Ayarları Kaydet',
+        rulesTitle: '🎯 1. Tit-for-Tat Kuralları',
+        ruleFollow: 'Karşılık Dürtmesi (Follow-Back)',
+        ruleStar: 'Organik Niş Keşif (Star)',
+        ruleOwner: 'Repo Sahibini Takip Et',
+        ruleUnfollow: 'Karşılıksız Takipleri Bırak',
+        ruleSupport: 'Açık Kaynak Desteği',
+        targetTopics: 'Hedef Konular (Topics)',
+        minStars: 'Min ★',
+        maxStars: 'Max ★',
+        dailyLimit: 'Döngü Başı',
+        interval: 'Aralık (Dk)',
+        radarTitle: '📡 2. Telegram Canlı Radar',
+        creatorTitle: '👨‍💻 Açık Kaynak Ekosistemi',
+        connectBtn: '🔑 GitHub ile Bağlan',
+        patPlaceholder: 'Veya PAT Token (ghp_...)'
       },
       en: {
         langBtn: '🌐 TR / <b>EN</b>',
@@ -747,22 +767,53 @@ HTML_DASHBOARD = """<!DOCTYPE html>
         badgeRunning: '● Running',
         badgeStopped: '○ Paused',
         autoScroll: 'Auto-Scroll',
-        searchPlaceholder: '🔍 Search logs (star, follow, time...)',
-        headerTitle: '⚡ TitForGit',
+        searchPlaceholder: '🔍 Search logs (star, poke, time...)',
         disconnectBtn: 'Disconnect Account',
         supportBtn: '💖 Support Creator Now',
-        saveBtn: '💾 Save Settings'
+        saveBtn: '💾 Save Settings',
+        rulesTitle: '🎯 1. Tit-for-Tat Rules',
+        ruleFollow: 'Reciprocal Poke (Follow-Back)',
+        ruleStar: 'Organic Niche Discovery (Star)',
+        ruleOwner: 'Follow Repo Author',
+        ruleUnfollow: 'Unfollow Non-Followers',
+        ruleSupport: 'Open-Source Support',
+        targetTopics: 'Target Topics',
+        minStars: 'Min ★',
+        maxStars: 'Max ★',
+        dailyLimit: 'Per Cycle',
+        interval: 'Interval (Min)',
+        radarTitle: '📡 2. Telegram Live Radar',
+        creatorTitle: '👨‍💻 Open-Source Ecosystem',
+        connectBtn: '🔑 Connect GitHub',
+        patPlaceholder: 'Or PAT Token (ghp_...)'
       }
     };
 
     function applyLanguage() {
-      const t = i18n[currentLang];
+      const t = i18n[currentLang] || i18n.tr;
       document.getElementById('langBtn').innerHTML = t.langBtn;
       document.getElementById('autoScrollSpan').innerText = t.autoScroll;
       document.getElementById('logFilter').placeholder = t.searchPlaceholder;
       document.getElementById('saveBtn').innerText = t.saveBtn;
       document.getElementById('supportBtn').innerText = t.supportBtn;
       document.getElementById('disconnectBtn').innerText = t.disconnectBtn;
+      document.getElementById('ghToken').placeholder = t.patPlaceholder;
+
+      // Sidebar kuralları ve başlıkları
+      document.getElementById('t_rulesTitle').innerText = t.rulesTitle;
+      document.getElementById('t_ruleFollow').innerText = t.ruleFollow;
+      document.getElementById('t_ruleStar').innerText = t.ruleStar;
+      document.getElementById('t_ruleOwner').innerText = t.ruleOwner;
+      document.getElementById('t_ruleUnfollow').innerText = t.ruleUnfollow;
+      document.getElementById('t_ruleSupport').innerText = t.ruleSupport;
+      document.getElementById('t_targetTopics').childNodes[0].nodeValue = t.targetTopics + ' ';
+      document.getElementById('t_minStars').childNodes[0].nodeValue = t.minStars + ' ';
+      document.getElementById('t_maxStars').childNodes[0].nodeValue = t.maxStars + ' ';
+      document.getElementById('t_dailyLimit').childNodes[0].nodeValue = t.dailyLimit + ' ';
+      document.getElementById('t_interval').childNodes[0].nodeValue = t.interval + ' ';
+      document.getElementById('t_radarTitle').childNodes[0].nodeValue = t.radarTitle + ' ';
+      document.getElementById('t_creatorTitle').innerText = t.creatorTitle;
+
       updateStatusUI(isPaused);
     }
 
@@ -941,8 +992,8 @@ HTML_DASHBOARD = """<!DOCTYPE html>
       box.innerHTML = filtered.map(l => {
         let cls = 'log-entry';
         if (l.includes('Star')) cls += ' star';
-        else if (l.includes('takip')) cls += ' follow';
-        else if (l.includes('tamamlandı') || l.includes('devrede') || l.includes('aktif')) cls += ' success';
+        else if (l.includes('takip') || l.includes('Dürtme') || l.includes('Poke') || l.includes('Follow')) cls += ' follow';
+        else if (l.includes('tamamlandı') || l.includes('devrede') || l.includes('aktif') || l.includes('Active')) cls += ' success';
         return `<div class="${cls}">${l}</div>`;
       }).join('');
 
