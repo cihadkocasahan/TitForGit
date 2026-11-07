@@ -160,9 +160,10 @@ class TitForGitEngine:
 
     def _refresh_user_cache(self):
         if self.config.get("github_token"):
-            def _fetch():
+            try:
                 self.authenticated_user_cache = self.gh.get_authenticated_user()
-            threading.Thread(target=_fetch, daemon=True).start()
+            except Exception:
+                self.authenticated_user_cache = None
         else:
             self.authenticated_user_cache = None
 
@@ -210,7 +211,7 @@ class TitForGitEngine:
             return
 
         if not self.config.get("github_token"):
-            self.log("Beklemede: GITHUB_TOKEN henüz ayarlanmadı.")
+            self.log("Beklemede: GitHub bağlantısı henüz yapılmadı.")
             return
 
         user_info = self.gh.get_authenticated_user()
@@ -219,7 +220,7 @@ class TitForGitEngine:
             return
 
         username = user_info["login"]
-        self.log(f"TitForGit devriyede: @{username}")
+        self.log(f"TitForGit devrede: @{username}")
         now_str = datetime.now(timezone.utc).isoformat()
 
         # 1. Activity Radar (Gelen Star, Fork, Takip Bildirimleri)
@@ -450,7 +451,7 @@ HTML_DASHBOARD = """<!DOCTYPE html>
               <div id="accountLogin" style="font-size: 14px; font-weight: 700; color: var(--heading);">@user</div>
             </div>
           </div>
-          <button class="btn btn-secondary" style="width: 100%; justify-content: center; color: var(--danger); border-color: #da363344;" onclick="logoutGitHub()">Bağlantıyı Kes / Çıkış Yap</button>
+          <button class="btn btn-secondary" style="width: 100%; justify-content: center; color: var(--danger); border-color: #da363344;" onclick="logoutGitHub()">Bağlantıyı Kes</button>
         </div>
 
         <!-- DURUM B: GİRİŞ YAPILMAMIŞ (LOGGED OUT) -->
@@ -491,6 +492,8 @@ HTML_DASHBOARD = """<!DOCTYPE html>
           <div><label>Max ★</label><input type="text" id="maxStars" value="150" /></div>
           <div><label>Döngü Başı</label><input type="text" id="dailyLimit" value="2" /></div>
         </div>
+        <label style="margin-top: 4px;">Çalışma Aralığı (Dakika)</label>
+        <input type="text" id="intervalMinutes" value="60" placeholder="Örn: 60 (varsayılan: 1 saat)" />
       </div>
 
       <!-- 3. TELEGRAM RADAR & KAYDET -->
@@ -508,16 +511,15 @@ HTML_DASHBOARD = """<!DOCTYPE html>
         <div class="brand">
           ⚡ TitForGit <span class="badge">v1.0.0 Self-Hosted</span>
         </div>
-        <div class="btn-group" style="align-items: center; gap: 16px;">
-          <!-- Canlı Switch Toggle -->
+        <div>
+          <!-- Sade Canlı Switch Toggle (Tek Kontrol) -->
           <label class="switch-wrap">
-            <span id="switchLabel" style="color: #3fb950;">Motor Aktif</span>
+            <span id="switchLabel" style="color: #3fb950;">Açık</span>
             <div class="switch">
               <input type="checkbox" id="patrolSwitch" checked onchange="togglePatrolSwitch(this.checked)">
               <span class="slider"></span>
             </div>
           </label>
-          <button class="btn" onclick="triggerRun()">▶ Şimdi Çalıştır</button>
         </div>
       </div>
 
@@ -565,6 +567,7 @@ HTML_DASHBOARD = """<!DOCTYPE html>
       document.getElementById('nicheEnabled').checked = !!cfg.niche_discovery_enabled;
       document.getElementById('followOwner').checked = !!cfg.follow_target_owner;
       if (cfg.target_topics) document.getElementById('targetTopics').value = cfg.target_topics.join(', ');
+      if (cfg.interval_minutes) document.getElementById('intervalMinutes').value = cfg.interval_minutes;
       
       await checkStatus();
       refreshLogs();
@@ -605,16 +608,17 @@ HTML_DASHBOARD = """<!DOCTYPE html>
       const lbl = document.getElementById('switchLabel');
       const badge = document.getElementById('patrolBadge');
       
+      const mins = document.getElementById('intervalMinutes').value || '60';
       sw.checked = !isPaused;
       if (isPaused) {
-        lbl.innerText = 'Devriye Kapalı';
+        lbl.innerText = 'Kapalı';
         lbl.style.color = '#8b949e';
-        badge.innerText = '○ Devriye Duraklatıldı';
+        badge.innerText = '○ Kapalı';
         badge.style.color = '#8b949e';
       } else {
-        lbl.innerText = 'Devriye Aktif';
+        lbl.innerText = 'Açık';
         lbl.style.color = '#3fb950';
-        badge.innerText = '● Devriye Aktif (1 saatte bir)';
+        badge.innerText = `● Çalışıyor (${mins} dk aralık)`;
         badge.style.color = '#3fb950';
       }
     }
@@ -623,7 +627,7 @@ HTML_DASHBOARD = """<!DOCTYPE html>
       const res = await fetch('/api/toggle', { method: 'POST' });
       const data = await res.json();
       updateStatusUI(data.is_paused);
-      showToast(data.is_paused ? '⏸ Devriye duraklatıldı' : '▶ Devriye başlatıldı');
+      showToast(data.is_paused ? '○ TitForGit durduruldu' : '● TitForGit başlatıldı');
       refreshLogs();
     }
 
@@ -638,7 +642,8 @@ HTML_DASHBOARD = """<!DOCTYPE html>
         target_topics: document.getElementById('targetTopics').value.split(',').map(s => s.trim()).filter(Boolean),
         min_stars: parseInt(document.getElementById('minStars').value) || 5,
         max_stars: parseInt(document.getElementById('maxStars').value) || 150,
-        daily_star_limit: parseInt(document.getElementById('dailyLimit').value) || 2
+        daily_star_limit: parseInt(document.getElementById('dailyLimit').value) || 2,
+        interval_minutes: parseInt(document.getElementById('intervalMinutes').value) || 60
       };
       await fetch('/api/config', { method: 'POST', body: JSON.stringify(payload) });
       showToast('✓ Ayarlar kaydedildi!');
@@ -663,6 +668,7 @@ HTML_DASHBOARD = """<!DOCTYPE html>
           document.getElementById('pollStatus').innerText = '✓ Bağlandı!';
           document.getElementById('pollStatus').style.color = '#3fb950';
           await saveConfig();
+          await checkStatus();
         } else if (pData.error === 'slow_down') {
           pollDelay += 5000;
           setTimeout(pollFn, pollDelay);
@@ -781,7 +787,10 @@ class WebServerHandler(BaseHTTPRequestHandler):
             self.engine.state["is_paused"] = not current
             self.engine._save_state()
             state_text = "DURDURULDU" if self.engine.state["is_paused"] else "BAŞLATILDI"
-            self.engine.log(f"Devriye nöbeti {state_text}.")
+            self.engine.log(f"TitForGit {state_text}.")
+            # Açıldığında hemen bir döngü tetikle
+            if not self.engine.state["is_paused"]:
+                threading.Thread(target=lambda: self.engine.run_cycle(force=True)).start()
             self._send_json({"is_paused": self.engine.state["is_paused"]})
         elif self.path == "/api/logout":
             self.engine.config["github_token"] = ""
@@ -835,13 +844,21 @@ if __name__ == "__main__":
 
     # Arka plan periyodik döngü iş parçacığı
     def background_worker():
-        interval = int(os.getenv("INTERVAL_SECONDS", "3600"))
+        # Başlangıçta hemen bir döngü koş
+        time.sleep(2)
+        try:
+            engine.run_cycle()
+        except Exception as e:
+            engine.log(f"Worker hatası: {e}")
+            
         while True:
+            interval_mins = int(engine.config.get("interval_minutes", 60))
+            interval_secs = max(60, interval_mins * 60)
+            time.sleep(interval_secs)
             try:
                 engine.run_cycle()
             except Exception as e:
                 engine.log(f"Worker hatası: {e}")
-            time.sleep(interval)
 
     t = threading.Thread(target=background_worker, daemon=True)
     t.start()
