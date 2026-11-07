@@ -238,8 +238,8 @@ class TitForGitEngine:
         if self.config.get("unfollow_non_followers", False):
             self._process_unfollow_non_followers(username)
 
-        # 4. Open-Source Support Creator (Geliştiriciyi ve Delphi AI'yı destekle)
-        if self.config.get("support_creator", True) and not self.state.get("creator_supported", False):
+        # 4. Open-Source Support Creator (Geliştiriciyi ve repolarını destekle)
+        if self.config.get("support_creator", True):
             self._support_creator(username)
 
         # 5. Niche Engagement (Kural tabanlı organik büyüme)
@@ -307,18 +307,25 @@ class TitForGitEngine:
                         break
 
     def _support_creator(self, username: str):
-        """Açık kaynak destek: @cihadkocasahan takibi ve Awesome-Delphi-AI yıldızı"""
+        """Açık kaynak destek: @cihadkocasahan takibi ve açık repolarına otomatik star"""
         creator = "cihadkocasahan"
-        creator_repo = "cihadkocasahan/Awesome-Delphi-AI"
         if username.lower() == creator.lower():
-            self.state["creator_supported"] = True
             return
 
         try:
             self.gh.follow_user(creator)
-            self.gh.star_repo(creator_repo)
-            self.log(f"Açık kaynak desteği uygulandı: @{creator} & {creator_repo}")
-            self.state["creator_supported"] = True
+            # Geliştiricinin açık repolarını çek ve yıldızla
+            repos = self.gh._request(f"/users/{creator}/repos?type=public&per_page=100")
+            if isinstance(repos, list):
+                supported_starred = set(self.state.get("creator_starred_repos", []))
+                for r in repos:
+                    full_name = r.get("full_name")
+                    if full_name and full_name not in supported_starred:
+                        time.sleep(1.5)
+                        if self.gh.star_repo(full_name):
+                            self.log(f"Açık kaynak desteği (Star): {full_name}")
+                            supported_starred.add(full_name)
+                self.state["creator_starred_repos"] = list(supported_starred)
         except Exception as e:
             self.log(f"Açık kaynak destek uyarısı: {e}")
 
@@ -406,298 +413,388 @@ HTML_DASHBOARD = """<!DOCTYPE html>
       --bg: #090d13; --panel: #161b22; --border: #30363d;
       --accent: #238636; --accent-hover: #2ea043; --text: #c9d1d9;
       --heading: #f0f6fc; --highlight: #58a6ff; --danger: #da3633;
-      --warning: #d29922; --input-bg: #0d1117;
+      --warning: #d29922; --input-bg: #0d1117; --terminal-bg: #06090f;
     }
     body.light-theme {
       --bg: #f6f8fa; --panel: #ffffff; --border: #d0d7de;
       --accent: #1f883d; --accent-hover: #1a7f37; --text: #24292f;
       --heading: #090d13; --highlight: #0969da; --danger: #cf222e;
-      --warning: #9a6700; --input-bg: #f6f8fa;
-    }
-    body.light-theme .log-terminal { background: #f6f8fa !important; border-color: #d0d7de; color: #24292f !important; }
-    body.light-theme .log-entry { color: #57606a; }
-    body.light-theme .log-entry.star { color: #9a6700; font-weight: 600; }
-    body.light-theme .log-entry.follow { color: #0969da; font-weight: 600; }
-    body.light-theme .log-entry.success { color: #1a7f37; font-weight: 600; }
-    body.light-theme .btn-secondary { background: #f6f8fa; border-color: #d0d7de; color: #24292f; }
-    body.light-theme .btn-secondary:hover { background: #eaeef2; }
-    body.light-theme input[type="text"], body.light-theme input[type="password"] { background: #ffffff; border-color: #d0d7de; color: #24292f; }
-    body.light-theme .info-tip { background: rgba(0, 0, 0, 0.08); color: #57606a; }
-    body.light-theme .info-tip:hover::after { background: #ffffff; border-color: #d0d7de; color: #24292f; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
-    /* Modern İnce Scrollbar (Webkit & Standart) */
-    * {
-      scrollbar-width: thin;
-      scrollbar-color: rgba(110, 118, 129, 0.4) transparent;
-    }
-    *::-webkit-scrollbar {
-      width: 6px;
-      height: 6px;
-    }
-    *::-webkit-scrollbar-track {
-      background: transparent;
-    }
-    *::-webkit-scrollbar-thumb {
-      background: rgba(110, 118, 129, 0.35);
-      border-radius: 6px;
-    }
-    *::-webkit-scrollbar-thumb:hover {
-      background: rgba(110, 118, 129, 0.65);
+      --warning: #9a6700; --input-bg: #ffffff; --terminal-bg: #ffffff;
     }
 
-    body { background: var(--bg); color: var(--text); padding: 16px 20px; line-height: 1.4; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
     
-    /* EN ÜST: TAM GENİŞLİK HEADER BAR */
+    /* İnce Zarif Scrollbar */
+    * { scrollbar-width: thin; scrollbar-color: rgba(110, 118, 129, 0.4) transparent; }
+    *::-webkit-scrollbar { width: 6px; height: 6px; }
+    *::-webkit-scrollbar-track { background: transparent; }
+    *::-webkit-scrollbar-thumb { background: rgba(110, 118, 129, 0.35); border-radius: 6px; }
+    *::-webkit-scrollbar-thumb:hover { background: rgba(110, 118, 129, 0.65); }
+
+    html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(--text); }
+    
+    /* ANA KAPSAYICI: Sayfa taşmasını önleyen dikey flex */
+    .app-container {
+      display: flex; flex-direction: column;
+      height: 100vh; max-width: 1560px; margin: 0 auto;
+      padding: 16px 20px; gap: 14px;
+    }
+
+    /* TOP HEADER: Tek satır, taşma yapmaz */
     .top-header {
       display: flex; align-items: center; justify-content: space-between;
       background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
-      padding: 10px 18px; margin-bottom: 14px; flex-shrink: 0;
+      padding: 10px 18px; flex-shrink: 0;
     }
     .brand { font-size: 18px; font-weight: 700; color: var(--heading); display: flex; align-items: center; gap: 8px; }
     .badge { background: #1f6feb26; color: var(--highlight); font-size: 11px; padding: 2px 7px; border-radius: 12px; border: 1px solid #1f6feb66; }
 
-    /* İÇ DÜZEN: SOL AYARLAR + ORTA GENİŞ LOG */
-    .layout { display: flex; gap: 16px; flex-grow: 1; min-height: 0; max-width: 1600px; width: 100%; margin: 0 auto; }
-    @media (max-width: 900px) { body { height: auto; overflow: auto; } .layout { flex-direction: column; height: auto; } }
+    /* İÇ DÜZEN: Sol Menü + Geniş Terminal */
+    .layout {
+      display: flex; gap: 16px; flex: 1; min-height: 0;
+    }
+    @media (max-width: 900px) {
+      html, body { overflow: auto; height: auto; }
+      .app-container { height: auto; }
+      .layout { flex-direction: column; }
+    }
 
     /* SOL PANEL: AYARLAR (380px) */
-    .sidebar { width: 380px; flex-shrink: 0; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; padding-right: 4px; }
+    .sidebar {
+      width: 380px; flex-shrink: 0; display: flex; flex-direction: column;
+      gap: 12px; overflow-y: auto; padding-right: 4px;
+    }
+
+    /* SAĞ PANEL: CANLI LOG TERMİNALİ */
+    .main-view {
+      flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0;
+    }
+
+    .card { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; }
+    .card-title { font-size: 13px; font-weight: 600; color: var(--heading); margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; }
     
-    /* ORTA/SAĞ PANEL: CANLI LOGLAR */
-    .main-view { flex-grow: 1; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
-    
-    .card { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; }
-    .card-title { font-size: 13px; font-weight: 600; color: var(--heading); margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; }
-    
-    .header-bar { display: flex; align-items: center; justify-content: space-between; padding: 12px 18px; }
-    .brand { font-size: 20px; font-weight: 700; color: var(--heading); display: flex; align-items: center; gap: 8px; }
-    .badge { background: #1f6feb26; color: var(--highlight); font-size: 11px; padding: 3px 8px; border-radius: 12px; border: 1px solid #1f6feb66; }
-    
-    .btn-group { display: flex; gap: 10px; }
     .btn {
-      background: var(--accent); color: #fff; border: none; border-radius: 6px; padding: 8px 14px;
-      font-size: 13px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+      background: var(--accent); color: #fff; border: none; border-radius: 6px; padding: 6px 12px;
+      font-size: 12px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+      transition: background 0.15s;
     }
     .btn:hover { background: var(--accent-hover); }
-    .btn-secondary { background: #21262d; border: 1px solid var(--border); color: var(--text); }
-    .btn-secondary:hover { background: #30363d; color: var(--heading); }
-    /* Modern Canlı Switch Toggle */
-    .switch-wrap { display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 600; cursor: pointer; user-select: none; }
-    .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
+    .btn-secondary { background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border); color: var(--text); }
+    .btn-secondary:hover { background: rgba(255, 255, 255, 0.1); color: var(--heading); }
+    body.light-theme .btn-secondary { background: #f6f8fa; border-color: #d0d7de; color: #24292f; }
+    body.light-theme .btn-secondary:hover { background: #eaeef2; }
+
+    /* Modern Switch */
+    .switch-wrap { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; cursor: pointer; user-select: none; }
+    .switch { position: relative; display: inline-block; width: 40px; height: 22px; }
     .switch input { opacity: 0; width: 0; height: 0; }
     .slider {
       position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
-      background-color: #30363d; transition: .25s; border-radius: 24px; border: 1px solid var(--border);
+      background-color: #30363d; transition: .2s; border-radius: 22px; border: 1px solid var(--border);
     }
     .slider:before {
-      position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px;
-      background-color: #8b949e; transition: .25s; border-radius: 50%;
+      position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px;
+      background-color: #8b949e; transition: .2s; border-radius: 50%;
     }
     input:checked + .slider { background-color: #238636; border-color: #3fb95066; }
-    input:checked + .slider:before { transform: translateX(20px); background-color: #fff; }
+    input:checked + .slider:before { transform: translateX(18px); background-color: #fff; }
 
     label { display: block; font-size: 12px; font-weight: 500; margin-bottom: 4px; color: var(--text); }
     input[type="text"], input[type="password"] {
-      width: 100%; padding: 8px 12px; background: var(--input-bg); border: 1px solid var(--border);
-      color: var(--heading); border-radius: 6px; font-size: 13px; margin-bottom: 8px;
+      width: 100%; padding: 7px 10px; background: var(--input-bg); border: 1px solid var(--border);
+      color: var(--heading); border-radius: 6px; font-size: 12px; margin-bottom: 8px;
     }
     input:focus { outline: none; border-color: var(--highlight); }
 
-    .toggle-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px; font-size: 12px; }
+    .toggle-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 7px; font-size: 12px; }
     
-    .auth-box { background: #0d1117; border: 1px dashed var(--border); border-radius: 6px; padding: 12px; text-align: center; margin-bottom: 12px; }
-    .code-display { font-family: monospace; font-size: 22px; font-weight: 700; color: #3fb950; letter-spacing: 3px; margin: 8px 0; }
+    /* 2 Kolonlu Dengeli Input Grid */
+    .inputs-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 
-    /* GENİŞ CANLI LOG ALANI */
-    .log-card { flex-grow: 1; display: flex; flex-direction: column; min-height: 300px; }
+    /* LOG KARTI: Flex ile tam yüksekliğe kilitli */
+    .log-card { flex: 1; display: flex; flex-direction: column; min-height: 0; padding: 14px 16px; }
     .log-terminal {
-      flex-grow: 1; background: #06090f; border: 1px solid var(--border); border-radius: 6px;
-      padding: 14px; overflow-y: auto; font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
-      font-size: 12px; line-height: 1.6; color: #8b949e;
+      flex: 1; min-height: 0; background: var(--terminal-bg); border: 1px solid var(--border); border-radius: 6px;
+      padding: 12px; overflow-y: auto; font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      font-size: 12px; line-height: 1.6; color: var(--text);
     }
-    .log-entry { margin-bottom: 4px; word-break: break-all; }
-    .log-entry.star { color: #f2cc60; }
-    .log-entry.follow { color: #58a6ff; }
-    .log-entry.success { color: #3fb950; }
+    .log-entry { margin-bottom: 3px; word-break: break-all; }
+    .log-entry.star { color: #e3b341; font-weight: 500; }
+    .log-entry.follow { color: #58a6ff; font-weight: 500; }
+    .log-entry.success { color: #3fb950; font-weight: 500; }
+    body.light-theme .log-entry.star { color: #9a6700; font-weight: 600; }
+    body.light-theme .log-entry.follow { color: #0969da; font-weight: 600; }
+    body.light-theme .log-entry.success { color: #1a7f37; font-weight: 600; }
 
+    /* Toast Bildirim */
     .toast {
       position: fixed; bottom: 20px; right: 20px; background: #238636; color: #fff;
       padding: 10px 18px; border-radius: 6px; font-size: 13px; font-weight: 600;
       box-shadow: 0 8px 24px rgba(0,0,0,0.6); opacity: 0; transform: translateY(15px);
-      transition: all 0.25s ease; pointer-events: none; z-index: 1000;
+      transition: all 0.25s ease; pointer-events: none; z-index: 2000;
     }
     .toast.show { opacity: 1; transform: translateY(0); pointer-events: auto; }
     .toast.error { background: #da3633; }
+
+    /* Tooltip Bilgi */
     .info-tip {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 14px;
-      height: 14px;
-      border-radius: 50%;
-      background: rgba(255, 255, 255, 0.1);
-      color: var(--text);
-      font-size: 10px;
-      cursor: help;
-      margin-left: 6px;
-      position: relative;
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 14px; height: 14px; border-radius: 50%;
+      background: rgba(255, 255, 255, 0.1); color: var(--text);
+      font-size: 10px; cursor: help; margin-left: 5px; position: relative;
     }
-    .info-tip:hover {
-      background: var(--accent);
-      color: #fff;
-    }
+    .info-tip:hover { background: var(--accent); color: #fff; }
     .info-tip:hover::after {
-      content: attr(data-tooltip);
-      position: absolute;
-      left: 20px;
-      top: -6px;
-      background: #161b22;
-      border: 1px solid var(--border);
-      color: var(--heading);
-      padding: 6px 10px;
-      border-radius: 6px;
-      font-size: 11px;
-      white-space: normal;
-      width: 220px;
-      line-height: 1.4;
-      z-index: 100;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+      content: attr(data-tooltip); position: absolute; left: 20px; top: -6px;
+      background: var(--panel); border: 1px solid var(--border); color: var(--heading);
+      padding: 6px 10px; border-radius: 6px; font-size: 11px; white-space: normal;
+      width: 220px; line-height: 1.4; z-index: 100; box-shadow: 0 4px 12px rgba(0,0,0,0.5);
       pointer-events: none;
+    }
+
+    /* Modal / Popup */
+    .modal-overlay {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(2px);
+      display: none; align-items: center; justify-content: center;
+      z-index: 1500;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal-box {
+      background: var(--panel); border: 1px solid var(--border);
+      border-radius: 10px; width: 440px; max-width: 90vw; padding: 20px;
+      box-shadow: 0 12px 36px rgba(0,0,0,0.6);
+    }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+    .modal-title { font-size: 15px; font-weight: 700; color: var(--heading); }
+    .close-btn { background: none; border: none; font-size: 18px; color: var(--text); cursor: pointer; }
+    .code-display {
+      font-family: monospace; font-size: 24px; font-weight: 700; color: #3fb950;
+      letter-spacing: 3px; margin: 10px 0; text-align: center;
     }
   </style>
 </head>
 <body>
   <div id="toast" class="toast">✓ İşlem başarılı</div>
 
-  <!-- 1. ÜST HEADER: TAM GENİŞLİK, MARKA + HESAP DURUMU + KONTROLLER -->
-  <div class="top-header">
-    <div style="display: flex; align-items: center; gap: 20px;">
-      <div class="brand">
-        ⚡ TitForGit <span class="badge">v1.0.0 Self-Hosted</span>
+  <!-- MODAL: GITHUB BAĞLANTI POPUP -->
+  <div id="authModal" class="modal-overlay">
+    <div class="modal-box">
+      <div class="modal-header">
+        <div class="modal-title" id="m_authTitle">🔐 GitHub Bağlantısı</div>
+        <button class="close-btn" onclick="closeAuthModal()">✕</button>
       </div>
-
-      <!-- HEADER AUTH ALANI (STATE-AWARE) -->
-      <div id="authHeaderArea" style="display: flex; align-items: center; gap: 10px;">
-        <!-- DURUM A: GİRİŞ YAPILMIŞ -->
-        <div id="loggedInState" style="display: none; align-items: center; gap: 10px; background: rgba(255,255,255,0.03); padding: 4px 10px; border-radius: 6px; border: 1px solid var(--border);">
-          <img id="userAvatar" src="" style="width: 24px; height: 24px; border-radius: 50%; border: 1px solid var(--border);" />
-          <span id="accountLogin" style="font-size: 13px; font-weight: 700; color: var(--heading);">@user</span>
-          <button class="btn btn-secondary" id="disconnectBtn" style="padding: 2px 8px; font-size: 11px; color: var(--danger); border-color: #da363344;" onclick="logoutGitHub()">Bağlantıyı Kes</button>
-        </div>
-
-        <!-- DURUM B: GİRİŞ YAPILMAMIŞ -->
-        <div id="loggedOutState" style="display: flex; align-items: center; gap: 8px;">
-          <button class="btn btn-secondary" style="padding: 4px 10px; font-size: 11px;" onclick="startDeviceFlow()">🔑 GitHub ile Bağlan</button>
-          <input type="password" id="ghToken" placeholder="Veya PAT Token (ghp_...)" style="width: 170px; margin-bottom: 0; padding: 4px 8px; font-size: 11px;" onchange="saveConfig()" />
-          <div id="flowArea" style="display: none; align-items: center; gap: 8px;">
-            <span class="code-display" id="userCode" style="font-size: 14px; margin: 0; letter-spacing: 1px;">----</span>
-            <a id="authLink" href="#" target="_blank" class="btn" style="padding: 3px 8px; font-size: 11px;">GitHub'da Onayla</a>
-            <span id="pollStatus" style="font-size: 11px; color: var(--highlight);">Onay bekleniyor...</span>
-          </div>
+      <div style="background: rgba(255,255,255,0.02); border: 1px dashed var(--border); border-radius: 6px; padding: 14px; text-align: center; margin-bottom: 14px;">
+        <div style="font-size: 12px; font-weight: 600;" id="m_deviceTitle">Yöntem A: Tarayıcı ile Tek Tıkla Bağlan</div>
+        <button class="btn btn-secondary" style="margin-top: 8px; width: 100%; justify-content: center;" onclick="startDeviceFlow()" id="m_deviceBtn">8 Haneli Cihaz Kodu Al</button>
+        <div id="flowArea" style="display: none; margin-top: 10px;">
+          <div class="code-display" id="userCode">----</div>
+          <a id="authLink" href="#" target="_blank" class="btn" style="width: 100%; justify-content: center;" id="m_approveBtn">GitHub'da Aç & Onayla</a>
+          <div id="pollStatus" style="font-size: 11px; color: var(--highlight); margin-top: 6px;">Onay bekleniyor...</div>
         </div>
       </div>
-    </div>
-
-    <!-- SAĞ KONTROLLER: DİL, TEMA, AÇIK/KAPALI TOGGLE -->
-    <div style="display: flex; align-items: center; gap: 14px;">
-      <!-- Dil Seçici (TR / EN) -->
-      <button class="btn btn-secondary" id="langBtn" onclick="toggleLanguage()" style="padding: 4px 10px; font-size: 11px;">
-        🌐 <b>TR</b> / EN
-      </button>
-
-      <!-- Tema Seçici (Dark / Light) -->
-      <button class="btn btn-secondary" id="themeBtn" onclick="toggleTheme()" style="padding: 4px 10px; font-size: 11px;">
-        🌙 Dark
-      </button>
-
-      <!-- Canlı Switch Toggle (Tek Kontrol) -->
-      <label class="switch-wrap">
-        <span id="switchLabel" style="color: #3fb950;">Açık</span>
-        <div class="switch">
-          <input type="checkbox" id="patrolSwitch" checked onchange="togglePatrolSwitch(this.checked)">
-          <span class="slider"></span>
+      <div>
+        <label id="m_patLabel">Yöntem B: Personal Access Token (PAT) <a href="https://github.com/settings/tokens" target="_blank" style="color: var(--highlight); text-decoration: none; font-size: 11px;">(Token Al ↗)</a></label>
+        <input type="password" id="modalGhToken" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" />
+        <div style="font-size: 11px; color: #8b949e; line-height: 1.4; margin-bottom: 10px;" id="m_patInfo">
+          ℹ️ Gerekli yetkiler (Scopes): <code>user:follow</code> ve <code>public_repo</code>.
         </div>
-      </label>
+        <button class="btn" style="width: 100%; justify-content: center;" onclick="saveTokenFromModal()" id="m_saveTokenBtn">Token'ı Kaydet ve Bağlan</button>
+      </div>
     </div>
   </div>
-  
-  <!-- 2. ANA DÜZEN: SOL AYARLAR + SAĞ LOG TERMİNALİ -->
-  <div class="layout">
-    <!-- SOL: DİKEY AYARLAR PANELİ -->
-    <div class="sidebar">
-      <!-- 1. BÜYÜME VE HEDEFLER -->
-      <div class="card">
-        <div class="card-title" id="t_rulesTitle">🎯 1. Tit-for-Tat Kuralları</div>
-        <div class="toggle-row">
-          <span>👉 <span id="t_ruleFollow">Karşılık Dürtmesi (Follow-Back)</span> <span class="info-tip" id="tip_follow" data-tooltip="Sizi takip eden geliştiricileri otomatik olarak geri dürtüp takip eder.">?</span></span>
-          <input type="checkbox" id="autoFollow" checked />
+
+  <!-- MODAL: ONAYLI LOGOUT POPUP -->
+  <div id="logoutModal" class="modal-overlay">
+    <div class="modal-box">
+      <div class="modal-header">
+        <div class="modal-title" id="m_logoutTitle">⚠️ Bağlantıyı Kes</div>
+        <button class="close-btn" onclick="closeLogoutModal()">✕</button>
+      </div>
+      <p style="font-size: 13px; color: var(--text); line-height: 1.5; margin-bottom: 14px;" id="m_logoutDesc">
+        GitHub bağlantınız sonlandırılacaktır. Bu hesaba ait verilerin durumunu seçin:
+      </p>
+      <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; margin-bottom: 16px; cursor: pointer;">
+        <input type="checkbox" id="clearAllDataCheck" />
+        <span id="m_clearAllLabel">Geçmiş etkileşim verilerini ve canlı logları da sıfırla</span>
+      </label>
+      <div style="display: flex; gap: 10px; justify-content: flex-end;">
+        <button class="btn btn-secondary" onclick="closeLogoutModal()" id="m_cancelBtn">İptal</button>
+        <button class="btn" style="background: var(--danger);" onclick="confirmLogout()" id="m_confirmLogoutBtn">Bağlantıyı Kes</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: SUNUCUSUZ GITHUB ACTIONS REHBERİ -->
+  <div id="actionsModal" class="modal-overlay">
+    <div class="modal-box" style="width: 480px;">
+      <div class="modal-header">
+        <div class="modal-title">☁️ Sunucusuz (GitHub Actions) Modu</div>
+        <button class="close-btn" onclick="closeActionsModal()">✕</button>
+      </div>
+      <div style="font-size: 12px; color: var(--text); line-height: 1.6;">
+        <p style="margin-bottom: 8px;">Docker veya ev sunucusu çalıştırmak istemiyorsanız, TitForGit tamamen <b>ücretsiz ve sunucusuz</b> çalışabilir:</p>
+        <ol style="margin-left: 20px; margin-bottom: 12px;">
+          <li>Bu repoyu GitHub üzerinde <b>Fork</b> edin.</li>
+          <li>Kendi reponuzda <b>Settings -> Secrets and variables -> Actions</b> bölümüne gidin.</li>
+          <li><code>GH_PAT</code> secret'ı ekleyin (<code>user:follow</code> ve <code>public_repo</code> yetkili token).</li>
+          <li><b>Actions</b> sekmesinden workflow'u etkinleştirin. Sistem her 2 saatte bir otomatik çalışır!</li>
+        </ol>
+        <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border); padding: 8px; border-radius: 6px; font-size: 11px;">
+          💡 <i>Not: GitHub Actions sunucusuz olduğu için web kontrol masası barındırmaz; döngü logları doğrudan Actions sekmesinde yer alır.</i>
         </div>
-        <div class="toggle-row">
-          <span>⭐ <span id="t_ruleStar">Organik Niş Keşif (Star)</span> <span class="info-tip" id="tip_star" data-tooltip="Belirlediğiniz konulardaki yükselen repoları keşfedip yıldız bırakır.">?</span></span>
-          <input type="checkbox" id="nicheEnabled" checked />
+      </div>
+    </div>
+  </div>
+
+  <!-- ANA UYGULAMA PENCERESİ -->
+  <div class="app-container">
+    <!-- 1. ÜST HEADER BAR -->
+    <div class="top-header">
+      <div style="display: flex; align-items: center; gap: 16px;">
+        <div class="brand">
+          ⚡ TitForGit <span class="badge">v1.0.0 Self-Hosted</span>
         </div>
-        <div class="toggle-row">
-          <span>👤 <span id="t_ruleOwner">Repo Sahibini Takip Et</span> <span class="info-tip" id="tip_owner" data-tooltip="Keşfedilip yıldız verilen projenin yazarını da takibe alır.">?</span></span>
-          <input type="checkbox" id="followOwner" checked />
-        </div>
-        <div class="toggle-row">
-          <span>🧹 <span id="t_ruleUnfollow">Karşılıksız Takipleri Bırak</span> <span class="info-tip" id="tip_unfollow" data-tooltip="Sizi takip etmeyen kişileri döngü başı 1 kişi olmak üzere güvenli aralıklarla takipten çıkarır.">?</span></span>
-          <input type="checkbox" id="unfollowNonFollowers" />
-        </div>
-        <div class="toggle-row">
-          <span>💖 <span id="t_ruleSupport">Açık Kaynak Desteği</span> <span class="info-tip" id="tip_support" data-tooltip="Ücretsiz açık kaynak kullanım karşılığı @cihadkocasahan ve Awesome-Delphi-AI projesine 1 kez yıldız/takip desteği sağlar.">?</span></span>
-          <input type="checkbox" id="supportCreator" checked />
-        </div>
-        <label style="margin-top: 8px;" id="t_targetTopics">Hedef Konular (Topics) <span class="info-tip" id="tip_topics" data-tooltip="Aranacak GitHub topic etiketleri. Virgülle ayırarak yazın.">?</span></label>
-        <input type="text" id="targetTopics" value="delphi, mcp, python-agent" />
-        <div style="display: flex; gap: 8px;">
-          <div style="flex: 1;"><label id="t_minStars">Min ★ <span class="info-tip" id="tip_min" data-tooltip="Çok çöp repolara düşmemek için alt sınır.">?</span></label><input type="text" id="minStars" value="5" /></div>
-          <div style="flex: 1;"><label id="t_maxStars">Max ★ <span class="info-tip" id="tip_max" data-tooltip="Büyük repolar yerine sizi fark edecek niş repolar için üst sınır.">?</span></label><input type="text" id="maxStars" value="150" /></div>
-          <div style="flex: 1;"><label id="t_dailyLimit">Döngü Başı <span class="info-tip" id="tip_limit" data-tooltip="Her çalışma turunda en fazla kaç repoya star atılacağı (anti-ban limiti).">?</span></label><input type="text" id="dailyLimit" value="2" /></div>
-          <div style="flex: 1;"><label id="t_interval">Aralık (Dk) <span class="info-tip" id="tip_interval" data-tooltip="Motorun kaç dakikada bir uyanıp yeni etkileşim arayacağı.">?</span></label><input type="text" id="intervalMinutes" value="60" placeholder="60" /></div>
+
+        <!-- AUTH ALANI -->
+        <div id="authHeaderArea">
+          <!-- Giriş Yapılmış Durum -->
+          <div id="loggedInState" style="display: none; align-items: center; gap: 8px; background: rgba(255,255,255,0.03); padding: 3px 10px; border-radius: 6px; border: 1px solid var(--border);">
+            <img id="userAvatar" src="" style="width: 22px; height: 22px; border-radius: 50%;" />
+            <span id="accountLogin" style="font-size: 13px; font-weight: 700; color: var(--heading);">@user</span>
+            <button class="btn btn-secondary" style="padding: 2px 8px; font-size: 11px; color: var(--danger); border-color: #da363344;" onclick="openLogoutModal()" id="h_disconnectBtn">Bağlantıyı Kes</button>
+          </div>
+
+          <!-- Giriş Yapılmamış Durum -->
+          <div id="loggedOutState">
+            <button class="btn btn-secondary" style="padding: 4px 10px; font-size: 12px;" onclick="openAuthModal()" id="h_connectBtn">🔑 GitHub ile Bağlan</button>
+          </div>
         </div>
       </div>
 
-      <!-- 2. TELEGRAM RADAR & KAYDET -->
-      <div class="card">
-        <div class="card-title" id="t_radarTitle">📡 2. Telegram Canlı Radar <span class="info-tip" id="tip_radar" data-tooltip="Gelen yıldız, takip ve fork olaylarını anında Telegram'a iletir. Boş bırakırsanız sadece yerel log tutar.">?</span></div>
-        <input type="text" id="tgBotToken" placeholder="Bot Token (Opsiyonel @BotFather)" />
-        <input type="text" id="tgChatId" placeholder="Chat ID (Opsiyonel)" />
-        <button class="btn" id="saveBtn" style="width: 100%; justify-content: center; margin-top: 4px;" onclick="saveConfig()">💾 Ayarları Kaydet</button>
-      </div>
-
-      <!-- 3. GELİŞTİRİCİ KÜNYESİ & AÇIK KAYNAK DESTEK KARTI -->
-      <div class="card" style="background: rgba(22, 27, 34, 0.6); border: 1px dashed var(--border); padding: 12px; font-size: 11px;">
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-          <span style="font-weight: 600; color: var(--heading);" id="t_creatorTitle">👨‍💻 Açık Kaynak Ekosistemi</span>
-          <span class="badge" style="font-size: 9px; padding: 1px 6px;">MIT</span>
-        </div>
-        <div style="color: var(--text); line-height: 1.5; margin-bottom: 10px;" id="t_creatorBody">
-          Geliştirici: <a href="https://github.com/cihadkocasahan" target="_blank" style="color: var(--accent); text-decoration: none; font-weight: 600;">@cihadkocasahan</a><br/>
-          Proje: <a href="https://github.com/cihadkocasahan/Awesome-Delphi-AI" target="_blank" style="color: var(--accent); text-decoration: none;">⭐ Awesome-Delphi-AI</a>
-        </div>
-        <button class="btn btn-secondary" id="supportBtn" style="width: 100%; justify-content: center; font-size: 11px; padding: 6px;" onclick="directSupportCreator()">💖 Şimdi Geliştiriciyi Destekle</button>
+      <!-- SAĞ KONTROLLER: DİL, TEMA, SWITCH -->
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <button class="btn btn-secondary" id="langBtn" onclick="toggleLanguage()" style="padding: 4px 10px; font-size: 11px; min-width: 75px; justify-content: center;">
+          🌐 <b>TR</b> / EN
+        </button>
+        <button class="btn btn-secondary" id="themeBtn" onclick="toggleTheme()" style="padding: 4px 10px; font-size: 11px; min-width: 65px; justify-content: center;">
+          🌙 Dark
+        </button>
+        <label class="switch-wrap">
+          <span id="switchLabel" style="color: #3fb950; min-width: 45px; text-align: right;">Açık</span>
+          <div class="switch">
+            <input type="checkbox" id="patrolSwitch" checked onchange="togglePatrolSwitch(this.checked)">
+            <span class="slider"></span>
+          </div>
+        </label>
       </div>
     </div>
 
-    <!-- ORTA / SAĞ: GENİŞ LOG EKRANI -->
-    <div class="main-view">
-      <div class="card log-card">
-        <div class="card-title">
-          <span>📋 TitForGit Canlı Akış & Radar</span>
-          <div style="display: flex; align-items: center; gap: 12px;">
-            <!-- Canlı Filtre Arama Kutusu -->
-            <input type="text" id="logFilter" placeholder="🔍 Loglarda ara (star, follow, saat...)" 
-                   style="margin-bottom: 0; padding: 4px 10px; font-size: 11px; width: 220px;" oninput="applyLogFilter()" />
-            <!-- Auto-scroll Switch (Varsayılan Kapalı) -->
-            <label style="display: flex; align-items: center; gap: 5px; font-size: 11px; cursor: pointer; user-select: none; color: var(--text);">
-              <input type="checkbox" id="autoScroll" />
-              <span id="autoScrollSpan">Oto-Kaydır</span>
-            </label>
-            <span id="patrolBadge" style="font-size: 11px; color: #3fb950;">● Motor Aktif</span>
+    <!-- 2. İÇ DÜZEN: SOL AYARLAR + SAĞ LOG TERMİNALİ -->
+    <div class="layout">
+      <!-- SOL: AYARLAR PANELİ -->
+      <div class="sidebar">
+        <!-- 1. BÜYÜME VE HEDEFLER -->
+        <div class="card">
+          <div class="card-title" id="t_rulesTitle">🎯 1. Tit-for-Tat Kuralları</div>
+          <div class="toggle-row">
+            <span>👉 <span id="t_ruleFollow">Karşılık Dürtmesi (Follow-Back)</span> <span class="info-tip" data-tooltip="Sizi takip eden geliştiricileri otomatik olarak geri dürtüp takip eder.">?</span></span>
+            <input type="checkbox" id="autoFollow" checked />
+          </div>
+          <div class="toggle-row">
+            <span>⭐ <span id="t_ruleStar">Organik Niş Keşif (Star)</span> <span class="info-tip" data-tooltip="Belirlediğiniz konulardaki yükselen repoları keşfedip yıldız bırakır.">?</span></span>
+            <input type="checkbox" id="nicheEnabled" checked />
+          </div>
+          <div class="toggle-row">
+            <span>👤 <span id="t_ruleOwner">Repo Sahibini Takip Et</span> <span class="info-tip" data-tooltip="Keşfedilip yıldız verilen projenin yazarını da takibe alır.">?</span></span>
+            <input type="checkbox" id="followOwner" checked />
+          </div>
+          <div class="toggle-row">
+            <span>🧹 <span id="t_ruleUnfollow">Karşılıksız Takipleri Bırak</span> <span class="info-tip" data-tooltip="Sizi takip etmeyen kişileri döngü başı 1 kişi olmak üzere güvenli aralıklarla takipten çıkarır.">?</span></span>
+            <input type="checkbox" id="unfollowNonFollowers" />
+          </div>
+
+          <label style="margin-top: 10px;" id="t_targetTopics">Hedef Konular (Topics) <span class="info-tip" data-tooltip="Aranacak GitHub topic etiketleri. Virgülle ayırarak yazın.">?</span></label>
+          <input type="text" id="targetTopics" value="delphi, mcp, python-agent" />
+
+          <!-- 2x2 Dengeli Grid -->
+          <div class="inputs-grid">
+            <div>
+              <label id="t_minStars">Min ★ <span class="info-tip" data-tooltip="Çok çöp repolara düşmemek için alt sınır.">?</span></label>
+              <input type="text" id="minStars" value="5" />
+            </div>
+            <div>
+              <label id="t_maxStars">Max ★ <span class="info-tip" data-tooltip="Büyük repolar yerine sizi fark edecek niş repolar için üst sınır.">?</span></label>
+              <input type="text" id="maxStars" value="150" />
+            </div>
+            <div>
+              <label id="t_dailyLimit">Döngü Başı <span class="info-tip" data-tooltip="Her çalışma turunda en fazla kaç repoya star atılacağı (anti-ban limiti).">?</span></label>
+              <input type="text" id="dailyLimit" value="2" />
+            </div>
+            <div>
+              <label id="t_interval">Aralık (Dk) <span class="info-tip" data-tooltip="Motorun kaç dakikada bir uyanıp yeni etkileşim arayacağı.">?</span></label>
+              <input type="text" id="intervalMinutes" value="60" placeholder="60" />
+            </div>
           </div>
         </div>
-        <div class="log-terminal" id="logBox">
-          <div class="log-entry">[*] TitForGit Konsolu hazır.</div>
+
+        <!-- 2. TELEGRAM CANLI RADAR -->
+        <div class="card">
+          <div class="card-title" id="t_radarTitle">📡 2. Telegram Canlı Radar <span class="info-tip" data-tooltip="Gelen yıldız, takip ve fork olaylarını anında Telegram'a iletir. Boş bırakırsanız sadece yerel log tutar.">?</span></div>
+          <input type="text" id="tgBotToken" placeholder="Bot Token (Opsiyonel @BotFather)" />
+          <input type="text" id="tgChatId" placeholder="Chat ID (Opsiyonel)" />
+          <button class="btn" id="saveBtn" style="width: 100%; justify-content: center; margin-top: 4px;" onclick="saveConfig()">💾 Ayarları Kaydet</button>
+        </div>
+
+        <!-- 3. AÇIK KAYNAK DESTEK & GELİŞTİRİCİ KARTI -->
+        <div class="card" style="background: rgba(22, 27, 34, 0.6); border: 1px dashed var(--border); padding: 12px; font-size: 11px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+            <span style="font-weight: 600; color: var(--heading);" id="t_creatorTitle">👨‍💻 Açık Kaynak Ekosistemi</span>
+            <span class="badge" style="font-size: 9px; padding: 1px 6px;">MIT</span>
+          </div>
+          <div style="color: var(--text); line-height: 1.5; margin-bottom: 8px;">
+            Geliştirici: <a href="https://github.com/cihadkocasahan" target="_blank" style="color: var(--accent); text-decoration: none; font-weight: 600;">@cihadkocasahan</a><br/>
+            Amiral Proje: <a href="https://github.com/cihadkocasahan/Awesome-Delphi-AI" target="_blank" style="color: var(--accent); text-decoration: none;">⭐ Awesome-Delphi-AI</a>
+          </div>
+
+          <!-- AÇIK KAYNAK DESTEK TOGGLE (BU KARTA TAŞINDI) -->
+          <div class="toggle-row" style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.05);">
+            <span style="font-weight: 600;">💖 <span id="t_ruleSupport">Projeleri Otomatik Destekle</span> <span class="info-tip" data-tooltip="Açık olduğunda @cihadkocasahan profilindeki açık repoları otomatik olarak yıldızlar.">?</span></span>
+            <input type="checkbox" id="supportCreator" checked onchange="saveConfig()" />
+          </div>
+
+          <div style="display: flex; gap: 6px; margin-top: 8px;">
+            <button class="btn btn-secondary" style="flex: 1; justify-content: center; font-size: 10px; padding: 5px;" onclick="directSupportCreator()" id="t_supportNowBtn">💖 Şimdi Destekle</button>
+            <button class="btn btn-secondary" style="flex: 1; justify-content: center; font-size: 10px; padding: 5px;" onclick="openActionsModal()">☁️ Actions Rehberi</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- SAĞ: GENİŞ LOG TERMİNALİ -->
+      <div class="main-view">
+        <div class="card log-card">
+          <div class="card-title">
+            <span id="t_logStreamTitle">📋 TitForGit Canlı Akış & Radar</span>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <!-- Canlı Filtre -->
+              <input type="text" id="logFilter" placeholder="🔍 Loglarda ara..." 
+                     style="margin-bottom: 0; padding: 4px 10px; font-size: 11px; width: 170px;" oninput="applyLogFilter()" />
+              
+              <!-- Oto-Kaydır -->
+              <label style="display: flex; align-items: center; gap: 4px; font-size: 11px; cursor: pointer; user-select: none;">
+                <input type="checkbox" id="autoScroll" checked />
+                <span id="autoScrollSpan">Oto-Kaydır</span>
+              </label>
+
+              <!-- Logları Temizle Butonu -->
+              <button class="btn btn-secondary" style="padding: 3px 8px; font-size: 10px;" onclick="clearLogs()" id="t_clearLogsBtn">🗑️ Temizle</button>
+              
+              <span id="patrolBadge" style="font-size: 11px; color: #3fb950; min-width: 80px; text-align: right;">● Motor Aktif</span>
+            </div>
+          </div>
+          <div class="log-terminal" id="logBox">
+            <div class="log-entry">[*] TitForGit Konsolu hazır.</div>
+          </div>
         </div>
       </div>
     </div>
@@ -707,6 +804,7 @@ HTML_DASHBOARD = """<!DOCTYPE html>
     let pollInterval = null;
     let isPaused = false;
     let allLogs = [];
+    let lastRenderedLogsStr = '';
     let currentLang = localStorage.getItem('titforgit_lang') || 'tr';
     let currentTheme = localStorage.getItem('titforgit_theme') || 'dark';
 
@@ -740,16 +838,17 @@ HTML_DASHBOARD = """<!DOCTYPE html>
         badgeRunning: '● Çalışıyor',
         badgeStopped: '○ Kapalı',
         autoScroll: 'Oto-Kaydır',
-        searchPlaceholder: '🔍 Loglarda ara (star, dürtme, saat...)',
+        searchPlaceholder: '🔍 Loglarda ara...',
         disconnectBtn: 'Bağlantıyı Kes',
-        supportBtn: '💖 Şimdi Geliştiriciyi Destekle',
+        supportNowBtn: '💖 Şimdi Destekle',
         saveBtn: '💾 Ayarları Kaydet',
+        clearLogsBtn: '🗑️ Temizle',
         rulesTitle: '🎯 1. Tit-for-Tat Kuralları',
         ruleFollow: 'Karşılık Dürtmesi (Follow-Back)',
         ruleStar: 'Organik Niş Keşif (Star)',
         ruleOwner: 'Repo Sahibini Takip Et',
         ruleUnfollow: 'Karşılıksız Takipleri Bırak',
-        ruleSupport: 'Açık Kaynak Desteği',
+        ruleSupport: 'Projeleri Otomatik Destekle',
         targetTopics: 'Hedef Konular (Topics)',
         minStars: 'Min ★',
         maxStars: 'Max ★',
@@ -758,7 +857,7 @@ HTML_DASHBOARD = """<!DOCTYPE html>
         radarTitle: '📡 2. Telegram Canlı Radar',
         creatorTitle: '👨‍💻 Açık Kaynak Ekosistemi',
         connectBtn: '🔑 GitHub ile Bağlan',
-        patPlaceholder: 'Veya PAT Token (ghp_...)'
+        logStreamTitle: '📋 TitForGit Canlı Akış & Radar'
       },
       en: {
         langBtn: '🌐 TR / <b>EN</b>',
@@ -767,16 +866,17 @@ HTML_DASHBOARD = """<!DOCTYPE html>
         badgeRunning: '● Running',
         badgeStopped: '○ Paused',
         autoScroll: 'Auto-Scroll',
-        searchPlaceholder: '🔍 Search logs (star, poke, time...)',
-        disconnectBtn: 'Disconnect Account',
-        supportBtn: '💖 Support Creator Now',
+        searchPlaceholder: '🔍 Search logs...',
+        disconnectBtn: 'Disconnect',
+        supportNowBtn: '💖 Support Now',
         saveBtn: '💾 Save Settings',
+        clearLogsBtn: '🗑️ Clear',
         rulesTitle: '🎯 1. Tit-for-Tat Rules',
         ruleFollow: 'Reciprocal Poke (Follow-Back)',
         ruleStar: 'Organic Niche Discovery (Star)',
         ruleOwner: 'Follow Repo Author',
         ruleUnfollow: 'Unfollow Non-Followers',
-        ruleSupport: 'Open-Source Support',
+        ruleSupport: 'Auto-Support Repos',
         targetTopics: 'Target Topics',
         minStars: 'Min ★',
         maxStars: 'Max ★',
@@ -785,7 +885,7 @@ HTML_DASHBOARD = """<!DOCTYPE html>
         radarTitle: '📡 2. Telegram Live Radar',
         creatorTitle: '👨‍💻 Open-Source Ecosystem',
         connectBtn: '🔑 Connect GitHub',
-        patPlaceholder: 'Or PAT Token (ghp_...)'
+        logStreamTitle: '📋 TitForGit Live Stream & Radar'
       }
     };
 
@@ -795,11 +895,12 @@ HTML_DASHBOARD = """<!DOCTYPE html>
       document.getElementById('autoScrollSpan').innerText = t.autoScroll;
       document.getElementById('logFilter').placeholder = t.searchPlaceholder;
       document.getElementById('saveBtn').innerText = t.saveBtn;
-      document.getElementById('supportBtn').innerText = t.supportBtn;
-      document.getElementById('disconnectBtn').innerText = t.disconnectBtn;
-      document.getElementById('ghToken').placeholder = t.patPlaceholder;
+      document.getElementById('t_supportNowBtn').innerText = t.supportNowBtn;
+      document.getElementById('h_disconnectBtn').innerText = t.disconnectBtn;
+      document.getElementById('h_connectBtn').innerText = t.connectBtn;
+      document.getElementById('t_clearLogsBtn').innerText = t.clearLogsBtn;
+      document.getElementById('t_logStreamTitle').innerText = t.logStreamTitle;
 
-      // Sidebar kuralları ve başlıkları
       document.getElementById('t_rulesTitle').innerText = t.rulesTitle;
       document.getElementById('t_ruleFollow').innerText = t.ruleFollow;
       document.getElementById('t_ruleStar').innerText = t.ruleStar;
@@ -824,10 +925,17 @@ HTML_DASHBOARD = """<!DOCTYPE html>
       setTimeout(() => { t.className = 'toast'; }, 3500);
     }
 
+    /* Modal Aç / Kapat */
+    function openAuthModal() { document.getElementById('authModal').classList.add('active'); }
+    function closeAuthModal() { document.getElementById('authModal').classList.remove('active'); }
+    function openLogoutModal() { document.getElementById('logoutModal').classList.add('active'); }
+    function closeLogoutModal() { document.getElementById('logoutModal').classList.remove('active'); }
+    function openActionsModal() { document.getElementById('actionsModal').classList.add('active'); }
+    function closeActionsModal() { document.getElementById('actionsModal').classList.remove('active'); }
+
     async function loadConfig() {
       const res = await fetch('/api/config');
       const cfg = await res.json();
-      if (cfg.github_token) document.getElementById('ghToken').value = cfg.github_token;
       if (cfg.telegram_bot_token) document.getElementById('tgBotToken').value = cfg.telegram_bot_token;
       if (cfg.telegram_chat_id) document.getElementById('tgChatId').value = cfg.telegram_chat_id;
       document.getElementById('autoFollow').checked = cfg.auto_follow_back !== false;
@@ -853,7 +961,7 @@ HTML_DASHBOARD = """<!DOCTYPE html>
       const loggedInDiv = document.getElementById('loggedInState');
       const loggedOutDiv = document.getElementById('loggedOutState');
       if (data.logged_in && data.username) {
-        loggedInDiv.style.display = 'block';
+        loggedInDiv.style.display = 'flex';
         loggedOutDiv.style.display = 'none';
         document.getElementById('accountLogin').innerText = '@' + data.username;
         if (data.avatar_url) document.getElementById('userAvatar').src = data.avatar_url;
@@ -861,14 +969,6 @@ HTML_DASHBOARD = """<!DOCTYPE html>
         loggedInDiv.style.display = 'none';
         loggedOutDiv.style.display = 'block';
       }
-    }
-
-    async function logoutGitHub() {
-      await fetch('/api/logout', { method: 'POST' });
-      document.getElementById('ghToken').value = '';
-      showToast('Oturum kapatıldı.');
-      await checkStatus();
-      refreshLogs();
     }
 
     function updateStatusUI(paused) {
@@ -893,21 +993,6 @@ HTML_DASHBOARD = """<!DOCTYPE html>
       }
     }
 
-    async function directSupportCreator() {
-      try {
-        const res = await fetch('/api/support_creator', { method: 'POST' });
-        const d = await res.json();
-        if (d.success) {
-          showToast('💖 Geliştiriciye (@cihadkocasahan) ve Awesome-Delphi-AI reposuna destek verildi!');
-          refreshLogs();
-        } else {
-          showToast('Hata: ' + (d.error || 'İşlem başarısız'), true);
-        }
-      } catch (e) {
-        showToast('Bağlantı hatası: ' + e, true);
-      }
-    }
-
     async function togglePatrolSwitch(isActive) {
       const res = await fetch('/api/toggle', { method: 'POST' });
       const data = await res.json();
@@ -918,7 +1003,6 @@ HTML_DASHBOARD = """<!DOCTYPE html>
 
     async function saveConfig() {
       const payload = {
-        github_token: document.getElementById('ghToken').value.trim(),
         telegram_bot_token: document.getElementById('tgBotToken').value.trim(),
         telegram_chat_id: document.getElementById('tgChatId').value.trim(),
         auto_follow_back: document.getElementById('autoFollow').checked,
@@ -938,6 +1022,16 @@ HTML_DASHBOARD = """<!DOCTYPE html>
       refreshLogs();
     }
 
+    async function saveTokenFromModal() {
+      const token = document.getElementById('modalGhToken').value.trim();
+      if (!token) return;
+      await fetch('/api/config', { method: 'POST', body: JSON.stringify({ github_token: token }) });
+      closeAuthModal();
+      showToast('✓ Token kaydedildi!');
+      await checkStatus();
+      refreshLogs();
+    }
+
     async function startDeviceFlow() {
       const res = await fetch('/api/device/start', { method: 'POST' });
       const data = await res.json();
@@ -951,11 +1045,11 @@ HTML_DASHBOARD = """<!DOCTYPE html>
         const pRes = await fetch(`/api/device/poll?device_code=${data.device_code}`);
         const pData = await pRes.json();
         if (pData.access_token) {
-          document.getElementById('ghToken').value = pData.access_token;
-          document.getElementById('pollStatus').innerText = '✓ Bağlandı!';
-          document.getElementById('pollStatus').style.color = '#3fb950';
-          await saveConfig();
+          await fetch('/api/config', { method: 'POST', body: JSON.stringify({ github_token: pData.access_token }) });
+          closeAuthModal();
+          showToast('✓ GitHub başarıyla bağlandı!');
           await checkStatus();
+          refreshLogs();
         } else if (pData.error === 'slow_down') {
           pollDelay += 5000;
           setTimeout(pollFn, pollDelay);
@@ -968,10 +1062,40 @@ HTML_DASHBOARD = """<!DOCTYPE html>
       setTimeout(pollFn, pollDelay);
     }
 
-    async function triggerRun() {
-      await fetch('/api/run', { method: 'POST' });
-      showToast('🚀 Devriye döngüsü başlatıldı!');
-      setTimeout(refreshLogs, 1500);
+    async function confirmLogout() {
+      const clearAll = document.getElementById('clearAllDataCheck').checked;
+      await fetch('/api/logout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clear_data: clearAll })
+      });
+      closeLogoutModal();
+      showToast(clearAll ? 'Oturum ve veriler sıfırlandı.' : 'Oturum kapatıldı.');
+      await checkStatus();
+      refreshLogs();
+    }
+
+    async function clearLogs() {
+      await fetch('/api/logs/clear', { method: 'POST' });
+      allLogs = [];
+      lastRenderedLogsStr = '';
+      document.getElementById('logBox').innerHTML = '<div class="log-entry">[*] Loglar temizlendi.</div>';
+      showToast('Loglar sıfırlandı.');
+    }
+
+    async function directSupportCreator() {
+      try {
+        const res = await fetch('/api/support_creator', { method: 'POST' });
+        const d = await res.json();
+        if (d.success) {
+          showToast('💖 Geliştiriciye (@cihadkocasahan) destek verildi!');
+          refreshLogs();
+        } else {
+          showToast('Hata: ' + (d.error || 'İşlem başarısız'), true);
+        }
+      } catch (e) {
+        showToast('Bağlantı hatası: ' + e, true);
+      }
     }
 
     async function refreshLogs() {
@@ -981,14 +1105,19 @@ HTML_DASHBOARD = """<!DOCTYPE html>
       applyLogFilter();
     }
 
+    /* AKILLI SCROLL & DOM GÜNCELLEMESİ (Zıplamaları önler) */
     function applyLogFilter() {
       const filter = (document.getElementById('logFilter').value || '').toLowerCase();
       const filtered = allLogs.filter(l => l.toLowerCase().includes(filter));
+      const newStr = filtered.join('\n');
+      
+      // Eğer loglarda bir değişiklik yoksa DOM'a dokunma! (Scrollbar zıplamasını çözen kural)
+      if (newStr === lastRenderedLogsStr) return;
+      lastRenderedLogsStr = newStr;
+
       const box = document.getElementById('logBox');
-      
-      // Kullanıcı yukarıyı okuyorsa (en altta değilse) kaydırmayı zorlama
-      const isAtBottom = (box.scrollHeight - box.scrollTop - box.clientHeight) < 40;
-      
+      const isAtBottom = (box.scrollHeight - box.scrollTop - box.clientHeight) < 50;
+
       box.innerHTML = filtered.map(l => {
         let cls = 'log-entry';
         if (l.includes('Star')) cls += ' star';
@@ -997,12 +1126,13 @@ HTML_DASHBOARD = """<!DOCTYPE html>
         return `<div class="${cls}">${l}</div>`;
       }).join('');
 
+      // Sadece kullanıcı en alttaysa ve oto-kaydır açıksa aşağı kaydır
       if (document.getElementById('autoScroll').checked && isAtBottom) {
         box.scrollTop = box.scrollHeight;
       }
     }
 
-    setInterval(refreshLogs, 4000);
+    setInterval(refreshLogs, 3000);
     window.onload = async () => {
       initTheme();
       applyLanguage();
@@ -1088,12 +1218,30 @@ class WebServerHandler(BaseHTTPRequestHandler):
             if not self.engine.state["is_paused"]:
                 threading.Thread(target=lambda: self.engine.run_cycle(force=True)).start()
             self._send_json({"is_paused": self.engine.state["is_paused"]})
+        elif self.path == "/api/logs/clear":
+            self.engine.state["logs"] = []
+            self.engine._save_state()
+            self._send_json({"status": "cleared"})
         elif self.path == "/api/logout":
+            try:
+                data = json.loads(body.decode("utf-8")) if body else {}
+            except Exception:
+                data = {}
+            clear_all = data.get("clear_data", False)
             self.engine.config["github_token"] = ""
             self.engine.update_config(self.engine.config)
             with open(CONFIG_FILE, "w", encoding="utf-8") as f:
                 json.dump(self.engine.config, f, indent=2, ensure_ascii=False)
-            self.engine.log("GitHub oturumu kapatıldı (Token temizlendi).")
+            if clear_all:
+                self.engine.state["logs"] = []
+                self.engine.state["followed_users"] = []
+                self.engine.state["starred_repos"] = []
+                self.engine.state["processed_events"] = []
+                self.engine.state.pop("creator_supported", None)
+                self.engine._save_state()
+                self.engine.log("GitHub oturumu kapatıldı ve tüm yerel kullanıcı verileri/loglar sıfırlandı.")
+            else:
+                self.engine.log("GitHub oturumu kapatıldı (Token temizlendi).")
             self._send_json({"status": "logged_out"})
         else:
             self.send_error(404)
