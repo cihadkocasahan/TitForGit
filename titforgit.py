@@ -79,6 +79,10 @@ class GitHubClient:
         res = self._request(f"/user/following/{target_user}", method="PUT")
         return res is not None
 
+    def unfollow_user(self, target_user: str) -> bool:
+        res = self._request(f"/user/following/{target_user}", method="DELETE")
+        return res is not None
+
     def star_repo(self, repo_full_name: str) -> bool:
         res = self._request(f"/user/starred/{repo_full_name}", method="PUT")
         return res is not None
@@ -230,7 +234,15 @@ class TitForGitEngine:
         if self.config.get("auto_follow_back", True):
             self._process_follow_back(username)
 
-        # 3. Niche Engagement (Kural tabanlı organik büyüme)
+        # 3. Unfollow Non-Followers (Karşılıklılığı bozanları takipten çık)
+        if self.config.get("unfollow_non_followers", False):
+            self._process_unfollow_non_followers(username)
+
+        # 4. Open-Source Support Creator (Geliştiriciyi ve Delphi AI'yı destekle)
+        if self.config.get("support_creator", True) and not self.state.get("creator_supported", False):
+            self._support_creator(username)
+
+        # 5. Niche Engagement (Kural tabanlı organik büyüme)
         if self.config.get("niche_discovery_enabled", False):
             self._process_niche_discovery()
 
@@ -290,6 +302,46 @@ class TitForGitEngine:
                     self.log(f"Geri takip yapıldı: @{f_login}")
                     self.state.setdefault("followed_users", []).append(f_login)
                     self.notifier.send_message(f"🤝 <b>Geri Takip (Follow-Back)</b>\n👤 <b>{f_login}</b> sizi takip ettiği için geri takibe alındı.")
+                    done += 1
+                    if done >= limit:
+                        break
+
+    def _support_creator(self, username: str):
+        """Açık kaynak destek: @cihadkocasahan takibi ve Awesome-Delphi-AI yıldızı"""
+        creator = "cihadkocasahan"
+        creator_repo = "cihadkocasahan/Awesome-Delphi-AI"
+        if username.lower() == creator.lower():
+            self.state["creator_supported"] = True
+            return
+
+        try:
+            self.gh.follow_user(creator)
+            self.gh.star_repo(creator_repo)
+            self.log(f"Açık kaynak desteği uygulandı: @{creator} & {creator_repo}")
+            self.state["creator_supported"] = True
+        except Exception as e:
+            self.log(f"Açık kaynak destek uyarısı: {e}")
+
+    def _process_unfollow_non_followers(self, username: str):
+        """Sizi takip etmeyen kullanıcıları mikro-dozajla (döngü başı 1-2 kişi) takipten çıkar"""
+        followers_list = {u["login"].lower() for u in self.gh.get_followers(username)}
+        following = self.gh.get_following(username)
+        
+        limit = self.config.get("max_unfollow_per_cycle", 1)
+        done = 0
+        
+        for u in following:
+            target = u["login"]
+            # Geliştiriciyi veya korunan kişileri yanlışlıkla silmemek için
+            if target.lower() in {"cihadkocasahan"}:
+                continue
+            if target.lower() not in followers_list:
+                delay = random.uniform(8.0, 18.0)
+                self.log(f"Jitter bekleyişi ({delay:.1f}s) -> Unfollow @{target}")
+                time.sleep(delay)
+                if self.gh.unfollow_user(target):
+                    self.log(f"Takipten çıkıldı (Non-follower): @{target}")
+                    self.notifier.send_message(f"🧹 <b>Tit-for-Tat Denkleştirme</b>\n👤 <b>@{target}</b> sizi takip etmediği için takipten çıkarıldı.")
                     done += 1
                     if done >= limit:
                         break
@@ -354,8 +406,18 @@ HTML_DASHBOARD = """<!DOCTYPE html>
       --bg: #090d13; --panel: #161b22; --border: #30363d;
       --accent: #238636; --accent-hover: #2ea043; --text: #c9d1d9;
       --heading: #f0f6fc; --highlight: #58a6ff; --danger: #da3633;
-      --warning: #d29922;
+      --warning: #d29922; --input-bg: #0d1117;
     }
+    body.light-theme {
+      --bg: #f6f8fa; --panel: #ffffff; --border: #d0d7de;
+      --accent: #1f883d; --accent-hover: #1a7f37; --text: #57606a;
+      --heading: #24292f; --highlight: #0969da; --danger: #cf222e;
+      --warning: #9a6700; --input-bg: #ffffff;
+    }
+    body.light-theme .log-terminal { background: #ffffff !important; border-color: #d0d7de; }
+    body.light-theme .btn-secondary { background: #f6f8fa; border-color: #d0d7de; color: #24292f; }
+    body.light-theme .btn-secondary:hover { background: #eaeef2; }
+    body.light-theme input[type="text"] { background: #ffffff; border-color: #d0d7de; color: #24292f; }
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
     body { background: var(--bg); color: var(--text); padding: 20px; line-height: 1.4; height: 100vh; overflow: hidden; }
     
@@ -400,8 +462,8 @@ HTML_DASHBOARD = """<!DOCTYPE html>
 
     label { display: block; font-size: 12px; font-weight: 500; margin-bottom: 4px; color: var(--text); }
     input[type="text"], input[type="password"] {
-      width: 100%; background: #0d1117; border: 1px solid var(--border); border-radius: 6px;
-      padding: 7px 10px; color: var(--heading); font-size: 13px; margin-bottom: 10px;
+      width: 100%; padding: 8px 12px; background: var(--input-bg); border: 1px solid var(--border);
+      color: var(--heading); border-radius: 6px; font-size: 13px; margin-bottom: 8px;
     }
     input:focus { outline: none; border-color: var(--highlight); }
 
@@ -487,7 +549,7 @@ HTML_DASHBOARD = """<!DOCTYPE html>
               <div id="accountLogin" style="font-size: 14px; font-weight: 700; color: var(--heading);">@user</div>
             </div>
           </div>
-          <button class="btn btn-secondary" style="width: 100%; justify-content: center; color: var(--danger); border-color: #da363344;" onclick="logoutGitHub()">Bağlantıyı Kes</button>
+          <button class="btn btn-secondary" id="disconnectBtn" style="width: 100%; justify-content: center; color: var(--danger); border-color: #da363344;" onclick="logoutGitHub()">Bağlantıyı Kes</button>
         </div>
 
         <!-- DURUM B: GİRİŞ YAPILMAMIŞ (LOGGED OUT) -->
@@ -521,6 +583,14 @@ HTML_DASHBOARD = """<!DOCTYPE html>
           <span>👤 Repo Sahibini Takip Et <span class="info-tip" data-tooltip="Keşfedilip yıldız verilen projenin yazarını da takibe alır.">?</span></span>
           <input type="checkbox" id="followOwner" checked />
         </div>
+        <div class="toggle-row">
+          <span>🧹 Karşılıksız Takipleri Bırak <span class="info-tip" data-tooltip="Sizi takip etmeyen kişileri döngü başı 1 kişi olmak üzere güvenli aralıklarla takipten çıkarır.">?</span></span>
+          <input type="checkbox" id="unfollowNonFollowers" />
+        </div>
+        <div class="toggle-row">
+          <span>💖 Açık Kaynak Desteği <span class="info-tip" data-tooltip="Ücretsiz açık kaynak kullanım karşılığı @cihadkocasahan ve Awesome-Delphi-AI projesine 1 kez yıldız/takip desteği sağlar.">?</span></span>
+          <input type="checkbox" id="supportCreator" checked />
+        </div>
         <label style="margin-top: 8px;">Hedef Konular (Topics) <span class="info-tip" data-tooltip="Aranacak GitHub topic etiketleri. Virgülle ayırarak yazın.">?</span></label>
         <input type="text" id="targetTopics" value="delphi, mcp, python-agent" />
         <div style="display: flex; gap: 8px;">
@@ -537,7 +607,20 @@ HTML_DASHBOARD = """<!DOCTYPE html>
         <div class="card-title">📡 3. Telegram Canlı Radar <span class="info-tip" data-tooltip="Gelen yıldız, takip ve fork olaylarını anında Telegram'a iletir. Boş bırakırsanız sadece yerel log tutar.">?</span></div>
         <input type="text" id="tgBotToken" placeholder="Bot Token (Opsiyonel @BotFather)" />
         <input type="text" id="tgChatId" placeholder="Chat ID (Opsiyonel)" />
-        <button class="btn" style="width: 100%; justify-content: center; margin-top: 4px;" onclick="saveConfig()">💾 Ayarları Kaydet</button>
+        <button class="btn" id="saveBtn" style="width: 100%; justify-content: center; margin-top: 4px;" onclick="saveConfig()">💾 Ayarları Kaydet</button>
+      </div>
+
+      <!-- 4. GELİŞTİRİCİ KÜNYESİ & AÇIK KAYNAK DESTEK KARTI -->
+      <div class="card" style="background: rgba(22, 27, 34, 0.6); border: 1px dashed var(--border); padding: 12px; font-size: 11px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+          <span style="font-weight: 600; color: var(--heading);">👨‍💻 Açık Kaynak Ekosistemi</span>
+          <span class="badge" style="font-size: 9px; padding: 1px 6px;">MIT</span>
+        </div>
+        <div style="color: var(--text); line-height: 1.5; margin-bottom: 10px;">
+          Geliştirici: <a href="https://github.com/cihadkocasahan" target="_blank" style="color: var(--accent); text-decoration: none; font-weight: 600;">@cihadkocasahan</a><br/>
+          Proje: <a href="https://github.com/cihadkocasahan/Awesome-Delphi-AI" target="_blank" style="color: var(--accent); text-decoration: none;">⭐ Awesome-Delphi-AI</a>
+        </div>
+        <button class="btn btn-secondary" id="supportBtn" style="width: 100%; justify-content: center; font-size: 11px; padding: 6px;" onclick="directSupportCreator()">💖 Şimdi Geliştiriciyi Destekle</button>
       </div>
     </div>
 
@@ -547,7 +630,17 @@ HTML_DASHBOARD = """<!DOCTYPE html>
         <div class="brand">
           ⚡ TitForGit <span class="badge">v1.0.0 Self-Hosted</span>
         </div>
-        <div>
+        <div style="display: flex; align-items: center; gap: 16px;">
+          <!-- Dil Seçici (TR / EN) -->
+          <button class="btn btn-secondary" id="langBtn" onclick="toggleLanguage()" style="padding: 4px 10px; font-size: 11px;">
+            🌐 <b>TR</b> / EN
+          </button>
+
+          <!-- Tema Seçici (Dark / Light) -->
+          <button class="btn btn-secondary" id="themeBtn" onclick="toggleTheme()" style="padding: 4px 10px; font-size: 11px;">
+            🌙 Dark
+          </button>
+
           <!-- Sade Canlı Switch Toggle (Tek Kontrol) -->
           <label class="switch-wrap">
             <span id="switchLabel" style="color: #3fb950;">Açık</span>
@@ -569,7 +662,7 @@ HTML_DASHBOARD = """<!DOCTYPE html>
             <!-- Auto-scroll Switch (Varsayılan Kapalı) -->
             <label style="display: flex; align-items: center; gap: 5px; font-size: 11px; cursor: pointer; user-select: none; color: var(--text);">
               <input type="checkbox" id="autoScroll" />
-              <span>Oto-Kaydır</span>
+              <span id="autoScrollSpan">Oto-Kaydır</span>
             </label>
             <span id="patrolBadge" style="font-size: 11px; color: #3fb950;">● Motor Aktif</span>
           </div>
@@ -585,6 +678,70 @@ HTML_DASHBOARD = """<!DOCTYPE html>
     let pollInterval = null;
     let isPaused = false;
     let allLogs = [];
+    let currentLang = localStorage.getItem('titforgit_lang') || 'tr';
+    let currentTheme = localStorage.getItem('titforgit_theme') || 'dark';
+
+    function initTheme() {
+      if (currentTheme === 'light') {
+        document.body.classList.add('light-theme');
+        document.getElementById('themeBtn').innerHTML = '☀️ Light';
+      } else {
+        document.body.classList.remove('light-theme');
+        document.getElementById('themeBtn').innerHTML = '🌙 Dark';
+      }
+    }
+
+    function toggleTheme() {
+      currentTheme = (currentTheme === 'dark') ? 'light' : 'dark';
+      localStorage.setItem('titforgit_theme', currentTheme);
+      initTheme();
+    }
+
+    function toggleLanguage() {
+      currentLang = (currentLang === 'tr') ? 'en' : 'tr';
+      localStorage.setItem('titforgit_lang', currentLang);
+      applyLanguage();
+    }
+
+    const i18n = {
+      tr: {
+        langBtn: '🌐 <b>TR</b> / EN',
+        switchOn: 'Açık',
+        switchOff: 'Kapalı',
+        badgeRunning: '● Çalışıyor',
+        badgeStopped: '○ Kapalı',
+        autoScroll: 'Oto-Kaydır',
+        searchPlaceholder: '🔍 Loglarda ara (star, follow, saat...)',
+        headerTitle: '⚡ TitForGit',
+        disconnectBtn: 'Bağlantıyı Kes',
+        supportBtn: '💖 Şimdi Geliştiriciyi Destekle',
+        saveBtn: '💾 Ayarları Kaydet'
+      },
+      en: {
+        langBtn: '🌐 TR / <b>EN</b>',
+        switchOn: 'Active',
+        switchOff: 'Paused',
+        badgeRunning: '● Running',
+        badgeStopped: '○ Paused',
+        autoScroll: 'Auto-Scroll',
+        searchPlaceholder: '🔍 Search logs (star, follow, time...)',
+        headerTitle: '⚡ TitForGit',
+        disconnectBtn: 'Disconnect Account',
+        supportBtn: '💖 Support Creator Now',
+        saveBtn: '💾 Save Settings'
+      }
+    };
+
+    function applyLanguage() {
+      const t = i18n[currentLang];
+      document.getElementById('langBtn').innerHTML = t.langBtn;
+      document.getElementById('autoScrollSpan').innerText = t.autoScroll;
+      document.getElementById('logFilter').placeholder = t.searchPlaceholder;
+      document.getElementById('saveBtn').innerText = t.saveBtn;
+      document.getElementById('supportBtn').innerText = t.supportBtn;
+      document.getElementById('disconnectBtn').innerText = t.disconnectBtn;
+      updateStatusUI(isPaused);
+    }
 
     function showToast(msg, isError = false) {
       const t = document.getElementById('toast');
@@ -602,6 +759,8 @@ HTML_DASHBOARD = """<!DOCTYPE html>
       document.getElementById('autoFollow').checked = cfg.auto_follow_back !== false;
       document.getElementById('nicheEnabled').checked = !!cfg.niche_discovery_enabled;
       document.getElementById('followOwner').checked = !!cfg.follow_target_owner;
+      document.getElementById('unfollowNonFollowers').checked = !!cfg.unfollow_non_followers;
+      document.getElementById('supportCreator').checked = cfg.support_creator !== false;
       if (cfg.target_topics) document.getElementById('targetTopics').value = cfg.target_topics.join(', ');
       if (cfg.interval_minutes) document.getElementById('intervalMinutes').value = cfg.interval_minutes;
       
@@ -644,18 +803,34 @@ HTML_DASHBOARD = """<!DOCTYPE html>
       const lbl = document.getElementById('switchLabel');
       const badge = document.getElementById('patrolBadge');
       
+      const t = i18n[currentLang] || i18n.tr;
       const mins = document.getElementById('intervalMinutes').value || '60';
       sw.checked = !isPaused;
       if (isPaused) {
-        lbl.innerText = 'Kapalı';
+        lbl.innerText = t.switchOff;
         lbl.style.color = '#8b949e';
-        badge.innerText = '○ Kapalı';
+        badge.innerText = t.badgeStopped;
         badge.style.color = '#8b949e';
       } else {
-        lbl.innerText = 'Açık';
+        lbl.innerText = t.switchOn;
         lbl.style.color = '#3fb950';
-        badge.innerText = `● Çalışıyor (${mins} dk aralık)`;
+        badge.innerText = `${t.badgeRunning} (${mins} m)`;
         badge.style.color = '#3fb950';
+      }
+    }
+
+    async function directSupportCreator() {
+      try {
+        const res = await fetch('/api/support_creator', { method: 'POST' });
+        const d = await res.json();
+        if (d.success) {
+          showToast('💖 Geliştiriciye (@cihadkocasahan) ve Awesome-Delphi-AI reposuna destek verildi!');
+          refreshLogs();
+        } else {
+          showToast('Hata: ' + (d.error || 'İşlem başarısız'), true);
+        }
+      } catch (e) {
+        showToast('Bağlantı hatası: ' + e, true);
       }
     }
 
@@ -675,6 +850,8 @@ HTML_DASHBOARD = """<!DOCTYPE html>
         auto_follow_back: document.getElementById('autoFollow').checked,
         niche_discovery_enabled: document.getElementById('nicheEnabled').checked,
         follow_target_owner: document.getElementById('followOwner').checked,
+        unfollow_non_followers: document.getElementById('unfollowNonFollowers').checked,
+        support_creator: document.getElementById('supportCreator').checked,
         target_topics: document.getElementById('targetTopics').value.split(',').map(s => s.trim()).filter(Boolean),
         min_stars: parseInt(document.getElementById('minStars').value) || 5,
         max_stars: parseInt(document.getElementById('maxStars').value) || 150,
@@ -753,6 +930,8 @@ HTML_DASHBOARD = """<!DOCTYPE html>
 
     setInterval(refreshLogs, 4000);
     window.onload = async () => {
+      initTheme();
+      applyLanguage();
       await loadConfig();
       const box = document.getElementById('logBox');
       box.scrollTop = box.scrollHeight;
@@ -818,6 +997,13 @@ class WebServerHandler(BaseHTTPRequestHandler):
         elif self.path == "/api/run":
             threading.Thread(target=lambda: self.engine.run_cycle(force=True)).start()
             self._send_json({"status": "started"})
+        elif self.path == "/api/support_creator":
+            u_info = self.engine.gh.get_authenticated_user()
+            if not u_info or "login" not in u_info:
+                self._send_json({"success": False, "error": "GitHub bağlantısı yok"})
+            else:
+                self.engine._support_creator(u_info["login"])
+                self._send_json({"success": True})
         elif self.path == "/api/toggle":
             current = self.engine.state.get("is_paused", False)
             self.engine.state["is_paused"] = not current
