@@ -411,7 +411,7 @@ HTML_DASHBOARD = """<!DOCTYPE html>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>TitForGit Control Deck</title>
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230d1117'/%3E%3Cpath d='M16 32a16 16 0 0 1 32 0' fill='none' stroke='%232ea043' stroke-width='7' stroke-linecap='round'/%3E%3Cpath d='M48 32a16 16 0 0 1-32 0' fill='none' stroke='%2358a6ff' stroke-width='7' stroke-linecap='round'/%3E%3Cpath d='M48 28l-7-9h14z' fill='%232ea043'/%3E%3Cpath d='M16 36l7 9H9z' fill='%2358a6ff'/%3E%3Ccircle cx='32' cy='32' r='5.5' fill='%230d1117'/%3E%3Ccircle cx='32' cy='32' r='2.6' fill='%23f0f6fc'/%3E%3C/svg%3E">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230d1117'/%3E%3Cpath d='M14 32a18 18 0 0 1 36 0' fill='none' stroke='%232ea043' stroke-width='8' stroke-linecap='round'/%3E%3Cpath d='M50 32a18 18 0 0 1-36 0' fill='none' stroke='%2358a6ff' stroke-width='8' stroke-linecap='round'/%3E%3Cpath d='M50 27l-8-11h16z' fill='%232ea043'/%3E%3Cpath d='M14 37l8 11H6z' fill='%2358a6ff'/%3E%3C/svg%3E">
   <meta name="theme-color" content="#0d1117">
   <style>
     :root {
@@ -716,8 +716,8 @@ HTML_DASHBOARD = """<!DOCTYPE html>
 
       <!-- SAĞ KONTROLLER: DİL, TEMA, SWITCH, TELEGRAM -->
       <div style="display: flex; align-items: center; gap: 12px;">
-        <button class="btn btn-secondary" id="h_tgRadarBtn" onclick="openTgRadarModal()" style="padding: 4px 10px; font-size: 11px; min-width: 65px; justify-content: center;">
-          📡 Radar
+        <button class="btn btn-secondary" id="h_tgRadarBtn" onclick="openTgRadarModal()" style="padding: 4px 10px; font-size: 11px; min-width: 75px; justify-content: center;">
+          ✈️📡 Radar
         </button>
         <button class="btn btn-secondary" id="langBtn" onclick="toggleLanguage()" style="padding: 4px 10px; font-size: 11px; min-width: 75px; justify-content: center;">
           🌐 <b>TR</b> / EN
@@ -923,7 +923,7 @@ HTML_DASHBOARD = """<!DOCTYPE html>
         dailyLimit: 'Döngü Başı',
         interval: 'Aralık (Dk)',
         radarTitle: '📡 2. Telegram Canlı Radar',
-        radarBtn: '📡 Radar',
+        radarBtn: '✈️📡 Radar',
         mTelegramRadarTitle: '📡 Telegram Canlı Radar Ayarları',
         mTelegramRadarDesc: 'Gelen yıldız, takip ve fork olaylarını anında Telegram kanalınıza iletir. Boş bırakırsanız sadece yerel log tutar.',
         creatorTitle: '🤝 Açık Kaynak Yardımlaşması',
@@ -971,7 +971,7 @@ HTML_DASHBOARD = """<!DOCTYPE html>
         dailyLimit: 'Per Cycle',
         interval: 'Interval (Min)',
         radarTitle: '📡 2. Telegram Live Radar',
-        radarBtn: '📡 Radar',
+        radarBtn: '✈️📡 Radar',
         mTelegramRadarTitle: '📡 Telegram Live Radar Settings',
         mTelegramRadarDesc: 'Instantly forwards new stars, follows and forks to Telegram. Leave empty to keep local logs only.',
         creatorTitle: '🤝 Open-Source Reciprocity',
