@@ -16,7 +16,7 @@
 ## 📸 Adım Adım Kurulum ve Çalışma Rehberi (Visual Walkthrough)
 
 ### Adım 1: TitForGit Web Kontrol Masası
-Docker konteyneri ayağa kalktığında `http://localhost:8080` (veya sunucu IP'niz) üzerinden kontrol paneline erişin:
+Docker konteyneri ayağa kalktığında `http://localhost:8080` üzerinden kontrol paneline erişin:
 
 ![TitForGit Dashboard](docs/images/step1_dashboard.png)
 
@@ -79,11 +79,11 @@ Runs directly inside your own GitHub fork using GitHub's free scheduled runners.
 ---
 
 ### 🐳 Method 2: Self-Hosted Docker with Control Deck (~20 MB)
-Ideal for home labs (Proxmox, Raspberry Pi, VPS, or desktop).
+Ideal for home labs, VPS, Raspberry Pi, or local machines.
 
 1. Clone repository:
    ```bash
-   git clone http://192.168.1.25/ckocasahan/titforgit.git
+   git clone https://github.com/your-username/titforgit.git
    cd titforgit
    ```
 
@@ -92,6 +92,6 @@ Ideal for home labs (Proxmox, Raspberry Pi, VPS, or desktop).
    docker compose up -d
    ```
 
-3. Open **`http://localhost:8080`** (veya `http://192.168.1.141:8085`) in your browser:
+3. Open **`http://localhost:8080`** in your browser:
    - Use the **Browser Device Flow** button to link your GitHub account in 5 seconds.
    - Or paste your PAT token, set your Telegram bot, and configure your growth rules.
