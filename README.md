@@ -13,6 +13,36 @@
 
 ---
 
+## 📸 Adım Adım Kurulum ve Çalışma Rehberi (Visual Walkthrough)
+
+### Adım 1: TitForGit Web Kontrol Masası
+Docker konteyneri ayağa kalktığında `http://localhost:8080` (veya sunucu IP'niz) üzerinden kontrol paneline erişin:
+
+![TitForGit Dashboard](docs/images/step1_dashboard.png)
+
+---
+
+### Adım 2: Tek Tıkla Cihaz Yetkilendirmesi (Device Flow)
+Token kopyala-yapıştır yapmadan oturum açmak için **"Cihaz Kodu Üret"** butonuna basın. Sistem size 8 haneli tek kullanımlık bir kod üretir:
+
+![Device Code Generation](docs/images/step2_device_code.png)
+
+---
+
+### Adım 3: GitHub Üzerinden Onaylama
+**"GitHub'da Aç & Onayla"** bağlantısına tıklayın (veya doğrudan `https://github.com/login/device` adresine gidin), kodu girip onaylayın. Sistem token'ı GitHub'dan otomatik olarak çeker ve güvenli yerel veritabanına kaydeder:
+
+![GitHub Device Authorization](docs/images/step3_github_login.png)
+
+---
+
+### Adım 4: Canlı Büyüme Kuralları & Telegram Radarı
+- **Smart Follow-Back:** Hesabınızı takip edenler mikro-dozajla (spam filtrelerine takılmadan) geri takip edilir.
+- **Niche Engagement:** Belirlediğiniz konu etiketlerindeki (örn: `delphi`, `mcp`, `python-agent`) aktif projelere doğal jitter gecikmeleriyle (15-35s) star bırakılır.
+- **Telegram Radarı:** Gelen star, fork ve takipçiler anında Telegram bildirimi olarak cebinize düşer.
+
+---
+
 ## 💡 What is TitForGit?
 
 **TitForGit** is an autonomous, open-source developer engagement engine based on the mathematical principle of **Tit-for-Tat**:
@@ -57,6 +87,6 @@ Ideal for home labs (Proxmox, Raspberry Pi, VPS, or desktop).
    docker compose up -d
    ```
 
-3. Open **`http://localhost:8080`** in your browser:
+3. Open **`http://localhost:8080`** (veya `http://192.168.1.141:8085`) in your browser:
    - Use the **Browser Device Flow** button to link your GitHub account in 5 seconds.
    - Or paste your PAT token, set your Telegram bot, and configure your growth rules.
