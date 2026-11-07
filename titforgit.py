@@ -411,6 +411,8 @@ HTML_DASHBOARD = """<!DOCTYPE html>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>TitForGit Control Deck</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='15' fill='%230d1117'/%3E%3Cg fill='none' stroke-linecap='round' stroke-width='5'%3E%3Cpath d='M18 32a14 14 0 0 1 28 0' stroke='%232ea043'/%3E%3Cpath d='M46 32a14 14 0 0 1-28 0' stroke='%2358a6ff'/%3E%3C/g%3E%3Cpath d='M46 30l-5-6 10 0z' fill='%232ea043'/%3E%3Cpath d='M18 34l5 6-10 0z' fill='%2358a6ff'/%3E%3Ccircle cx='32' cy='32' r='3.5' fill='%23f0f6fc'/%3E%3C/svg%3E">
+  <meta name="theme-color" content="#0d1117">
   <style>
     :root {
       --bg: #090d13; --panel: #161b22; --border: #30363d;
