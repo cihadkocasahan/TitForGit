@@ -1,0 +1,45 @@
+name: GitPulse Engine
+on:
+  schedule:
+    # Her 2 saatte bir çalışır (UTC)
+    - cron: '0 */2 * * *'
+  workflow_dispatch: # Manuel tetikleme imkanı
+
+permissions:
+  contents: write
+
+jobs:
+  run-pulse:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Run GitPulse Engine
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          AUTO_FOLLOW_BACK: 'true'
+          NICHE_DISCOVERY_ENABLED: 'true'
+          TARGET_TOPICS: 'delphi,mcp,ai-agents'
+          DAILY_STAR_LIMIT: '2'
+          RUN_MODE: 'cron'
+          GITPULSE_STATE_FILE: 'state/gitpulse_state.json'
+        run: |
+          mkdir -p state
+          python gitpulse.py
+
+      - name: Commit & Push State Sync
+        run: |
+          git config --global user.name "gitpulse-bot"
+          git config --global user.email "bot@gitpulse.local"
+          git add state/gitpulse_state.json
+          git diff --quiet && git diff --staged --quiet || (git commit -m "chore(sync): update gitpulse state [skip ci]" && git push)
