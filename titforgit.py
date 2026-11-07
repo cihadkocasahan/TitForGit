@@ -202,8 +202,8 @@ class TitForGitEngine:
         ts = datetime.now().strftime("%H:%M:%S")
         entry = f"[{ts}] {text}"
         print(entry)
-        self.state.setdefault("logs", []).insert(0, entry)
-        self.state["logs"] = self.state["logs"][:100]
+        self.state.setdefault("logs", []).append(entry)
+        self.state["logs"] = self.state["logs"][-200:]
 
     def run_cycle(self, force: bool = False):
         if not force and self.state.get("is_paused", False):
@@ -528,9 +528,9 @@ HTML_DASHBOARD = """<!DOCTYPE html>
             <!-- Canlı Filtre Arama Kutusu -->
             <input type="text" id="logFilter" placeholder="🔍 Loglarda ara (star, follow, saat...)" 
                    style="margin-bottom: 0; padding: 4px 10px; font-size: 11px; width: 220px;" oninput="applyLogFilter()" />
-            <!-- Auto-scroll Switch -->
+            <!-- Auto-scroll Switch (Varsayılan Kapalı) -->
             <label style="display: flex; align-items: center; gap: 5px; font-size: 11px; cursor: pointer; user-select: none; color: var(--text);">
-              <input type="checkbox" id="autoScroll" checked />
+              <input type="checkbox" id="autoScroll" />
               <span>Oto-Kaydır</span>
             </label>
             <span id="patrolBadge" style="font-size: 11px; color: #3fb950;">● Motor Aktif</span>
@@ -692,21 +692,29 @@ HTML_DASHBOARD = """<!DOCTYPE html>
       const filter = (document.getElementById('logFilter').value || '').toLowerCase();
       const filtered = allLogs.filter(l => l.toLowerCase().includes(filter));
       const box = document.getElementById('logBox');
+      
+      // Kullanıcı yukarıyı okuyorsa (en altta değilse) kaydırmayı zorlama
+      const isAtBottom = (box.scrollHeight - box.scrollTop - box.clientHeight) < 40;
+      
       box.innerHTML = filtered.map(l => {
         let cls = 'log-entry';
         if (l.includes('Star')) cls += ' star';
         else if (l.includes('takip')) cls += ' follow';
-        else if (l.includes('tamamlandı') || l.includes('devrede')) cls += ' success';
+        else if (l.includes('tamamlandı') || l.includes('devrede') || l.includes('aktif')) cls += ' success';
         return `<div class="${cls}">${l}</div>`;
       }).join('');
 
-      if (document.getElementById('autoScroll').checked) {
+      if (document.getElementById('autoScroll').checked && isAtBottom) {
         box.scrollTop = box.scrollHeight;
       }
     }
 
     setInterval(refreshLogs, 4000);
-    window.onload = loadConfig;
+    window.onload = async () => {
+      await loadConfig();
+      const box = document.getElementById('logBox');
+      box.scrollTop = box.scrollHeight;
+    };
   </script>
 </body>
 </html>
