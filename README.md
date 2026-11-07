@@ -36,10 +36,15 @@ Token kopyala-yapıştır yapmadan oturum açmak için **"Cihaz Kodu Üret"** bu
 
 ---
 
-### Adım 4: Canlı Büyüme Kuralları & Telegram Radarı
-- **Smart Follow-Back:** Hesabınızı takip edenler mikro-dozajla (spam filtrelerine takılmadan) geri takip edilir.
-- **Niche Engagement:** Belirlediğiniz konu etiketlerindeki (örn: `delphi`, `mcp`, `python-agent`) aktif projelere doğal jitter gecikmeleriyle (15-35s) star bırakılır.
-- **Telegram Radarı:** Gelen star, fork ve takipçiler anında Telegram bildirimi olarak cebinize düşer.
+### Adım 4: Canlı Çalışma & Aktif Devriye Paneli
+Yetkilendirme tamamlandığında sistem arka planda periyodik olarak çalışır, GitHub aktivitelerini anlık yakalar ve belirlediğiniz kurallara göre organik büyüme sağlar.
+
+Tüm hassas kimlik bilgileri (GitHub Token, Telegram Bot Token ve Chat ID) istemci tarafında maskelenmiş olarak görüntülenir:
+
+![TitForGit Active Patrol Dashboard](docs/images/step4_active_dashboard.png)
+
+- **Canlı Devriye Logları:** Son döngüde yakalanan yeni star'lar, forker'lar ve organik niş tarama adımları saniye saniye takip edilir.
+- **Micro-Dosing & Anti-Ban Koruması:** GitHub limitlerini aşmamak için her işlem arasında 15-35 saniyelik insansı jitter gecikmeleri uygulanır.
 
 ---
 
