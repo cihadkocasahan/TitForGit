@@ -367,9 +367,21 @@ HTML_DASHBOARD = """<!DOCTYPE html>
     .log-box { background: #0d1117; border: 1px solid var(--border); border-radius: 6px; padding: 12px; height: 180px; overflow-y: auto; font-family: monospace; font-size: 12px; color: #8b949e; }
     .log-entry { margin-bottom: 4px; }
     .toggle-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+
+    /* Modern Toast Bildirimi (0 KB Dış Bağımlılık) */
+    .toast {
+      position: fixed; bottom: 24px; right: 24px; background: #238636; color: #fff;
+      padding: 12px 20px; border-radius: 8px; font-size: 14px; font-weight: 600;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5); opacity: 0; transform: translateY(20px);
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); pointer-events: none; z-index: 1000;
+      display: flex; align-items: center; gap: 8px; border: 1px solid #3fb95066;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); pointer-events: auto; }
+    .toast.error { background: #da3633; border-color: #f8514966; }
   </style>
 </head>
 <body>
+  <div id="toast" class="toast">✓ İşlem başarılı</div>
   <div class="container">
     <div class="header">
       <div class="title">⚡ TitForGit <span class="badge">v1.0.0 Self-Hosted</span></div>
@@ -405,7 +417,7 @@ HTML_DASHBOARD = """<!DOCTYPE html>
         <input type="text" id="tgBotToken" placeholder="123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11" />
         <label>Telegram Chat ID</label>
         <input type="text" id="tgChatId" placeholder="6777703978" />
-        <button class="btn btn-secondary" onclick="alert('Test bildirimi ayarları kaydedilince aktifleştirilir.')">Test</button>
+        <button class="btn btn-secondary" onclick="showToast('✓ Test bildirimi Telegram ayarları kaydedilince aktiftir.')">Test</button>
       </div>
     </div>
 
@@ -452,6 +464,13 @@ HTML_DASHBOARD = """<!DOCTYPE html>
   <script>
     let pollInterval = null;
 
+    function showToast(msg, isError = false) {
+      const t = document.getElementById('toast');
+      t.innerText = msg;
+      t.className = isError ? 'toast show error' : 'toast show';
+      setTimeout(() => { t.className = 'toast'; }, 3500);
+    }
+
     async function loadConfig() {
       const res = await fetch('/api/config');
       const cfg = await res.json();
@@ -479,14 +498,14 @@ HTML_DASHBOARD = """<!DOCTYPE html>
         daily_star_limit: parseInt(document.getElementById('dailyLimit').value) || 2
       };
       await fetch('/api/config', { method: 'POST', body: JSON.stringify(payload) });
-      alert('Ayarlar başarıyla kaydedildi!');
+      showToast('✓ Ayarlar başarıyla kaydedildi!');
       refreshLogs();
     }
 
     async function startDeviceFlow() {
       const res = await fetch('/api/device/start', { method: 'POST' });
       const data = await res.json();
-      if (!data.user_code) { alert('Hata: Cihaz kodu alınamadı.'); return; }
+      if (!data.user_code) { showToast('Hata: Cihaz kodu alınamadı.', true); return; }
       document.getElementById('userCode').innerText = data.user_code;
       document.getElementById('authLink').href = data.verification_uri;
       document.getElementById('flowArea').style.display = 'block';
@@ -518,7 +537,8 @@ HTML_DASHBOARD = """<!DOCTYPE html>
 
     async function triggerRun() {
       await fetch('/api/run', { method: 'POST' });
-      setTimeout(refreshLogs, 2000);
+      showToast('🚀 Devriye döngüsü başlatıldı!');
+      setTimeout(refreshLogs, 1500);
     }
 
     async function refreshLogs() {
