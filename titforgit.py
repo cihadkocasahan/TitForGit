@@ -439,7 +439,7 @@ HTML_DASHBOARD = """<!DOCTYPE html>
     /* ANA KAPSAYICI: Sayfa taşmasını önleyen dikey flex */
     .app-container {
       display: flex; flex-direction: column;
-      height: 100vh; max-width: 1560px; margin: 0 auto;
+      height: 100vh; max-width: 1480px; margin: 0 auto;
       padding: 16px 20px; gap: 14px;
     }
 
@@ -453,9 +453,9 @@ HTML_DASHBOARD = """<!DOCTYPE html>
     .badge { background: #1f6feb26; color: var(--highlight); font-size: 11px; padding: 2px 7px; border-radius: 12px; border: 1px solid #1f6feb66; }
     body.light-theme .badge { background: #ddf4ff; color: #0969da; border-color: #54aeff66; }
 
-    /* İÇ DÜZEN: Sol Menü + Geniş Terminal */
+    /* İÇ DÜZEN: Sol Menü + Geniş Terminal (Eşit Hizalı Birlikte Kapsayıcı) */
     .layout {
-      display: flex; gap: 16px; flex: 1; min-height: 0;
+      display: flex; gap: 16px; flex: 1; min-height: 0; align-items: stretch;
     }
     @media (max-width: 900px) {
       html, body { overflow: auto; height: auto; }
@@ -471,7 +471,7 @@ HTML_DASHBOARD = """<!DOCTYPE html>
 
     /* SAĞ PANEL: CANLI LOG TERMİNALİ */
     .main-view {
-      flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0;
+      flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; height: 100%;
     }
 
     .card { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; }
@@ -515,10 +515,13 @@ HTML_DASHBOARD = """<!DOCTYPE html>
     /* 2 Kolonlu Dengeli Input Grid */
     .inputs-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 
-    /* LOG KARTI: Flex ile tam yüksekliğe kilitli */
-    .log-card { flex: 1; display: flex; flex-direction: column; min-height: 0; padding: 14px 16px; }
+    /* LOG KARTI: Sol panelle tam eşit hizalı yükseklik */
+    .log-card {
+      flex: 1; display: flex; flex-direction: column; min-height: 0; padding: 14px 16px;
+      height: 100%; box-sizing: border-box;
+    }
     .log-terminal {
-      flex: 1; min-height: 0; background: var(--terminal-bg); border: 1px solid var(--border); border-radius: 6px;
+      flex: 1; min-height: 250px; background: var(--terminal-bg); border: 1px solid var(--border); border-radius: 6px;
       padding: 12px; overflow-y: auto; font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
       font-size: 12px; line-height: 1.6; color: var(--text);
     }
