@@ -29,9 +29,8 @@ DATA_DIR = os.getenv("TITFORGIT_DATA_DIR", "/data" if os.path.exists("/data") el
 STATE_FILE = os.path.join(DATA_DIR, "titforgit_state.json")
 CONFIG_FILE = os.path.join(DATA_DIR, "titforgit_config.json")
 
-# Standard GitHub Device Flow Client ID (Official Public CLI ID or custom)
-# GitHub CLI public client_id: 178c6fc77834e35e3583
-GITHUB_DEVICE_CLIENT_ID = os.getenv("GITHUB_CLIENT_ID", "178c6fc77834e35e3583")
+# Standard GitHub Device Flow Client ID (Official Public GitHub CLI Client ID)
+GITHUB_DEVICE_CLIENT_ID = os.getenv("GITHUB_CLIENT_ID", "178c6fc778ccc68e1d6a")
 
 class GitHubClient:
     def __init__(self, token: str):
