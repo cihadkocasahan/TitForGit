@@ -418,20 +418,49 @@ HTML_DASHBOARD = """<!DOCTYPE html>
     body.light-theme .btn-secondary { background: #f6f8fa; border-color: #d0d7de; color: #24292f; }
     body.light-theme .btn-secondary:hover { background: #eaeef2; }
     body.light-theme input[type="text"] { background: #ffffff; border-color: #d0d7de; color: #24292f; }
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    body { background: var(--bg); color: var(--text); padding: 20px; line-height: 1.4; height: 100vh; overflow: hidden; }
-    
-    .layout { display: flex; gap: 20px; height: calc(100vh - 40px); max-width: 1300px; margin: 0 auto; }
-    @media (max-width: 860px) { body { height: auto; overflow: auto; } .layout { flex-direction: column; height: auto; } }
+    /* Modern İnce Scrollbar (Webkit & Standart) */
+    * {
+      scrollbar-width: thin;
+      scrollbar-color: rgba(110, 118, 129, 0.4) transparent;
+    }
+    *::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    *::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    *::-webkit-scrollbar-thumb {
+      background: rgba(110, 118, 129, 0.35);
+      border-radius: 6px;
+    }
+    *::-webkit-scrollbar-thumb:hover {
+      background: rgba(110, 118, 129, 0.65);
+    }
 
-    /* SOL PANEL: AYARLAR (380px Dikey) */
-    .sidebar { width: 400px; flex-shrink: 0; display: flex; flex-direction: column; gap: 16px; overflow-y: auto; padding-right: 4px; }
+    body { background: var(--bg); color: var(--text); padding: 16px 20px; line-height: 1.4; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
     
-    /* ORTA/SAĞ PANEL: CANLI LOGLAR VE BAŞLIK */
-    .main-view { flex-grow: 1; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+    /* EN ÜST: TAM GENİŞLİK HEADER BAR */
+    .top-header {
+      display: flex; align-items: center; justify-content: space-between;
+      background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
+      padding: 10px 18px; margin-bottom: 14px; flex-shrink: 0;
+    }
+    .brand { font-size: 18px; font-weight: 700; color: var(--heading); display: flex; align-items: center; gap: 8px; }
+    .badge { background: #1f6feb26; color: var(--highlight); font-size: 11px; padding: 2px 7px; border-radius: 12px; border: 1px solid #1f6feb66; }
+
+    /* İÇ DÜZEN: SOL AYARLAR + ORTA GENİŞ LOG */
+    .layout { display: flex; gap: 16px; flex-grow: 1; min-height: 0; max-width: 1600px; width: 100%; margin: 0 auto; }
+    @media (max-width: 900px) { body { height: auto; overflow: auto; } .layout { flex-direction: column; height: auto; } }
+
+    /* SOL PANEL: AYARLAR (380px) */
+    .sidebar { width: 380px; flex-shrink: 0; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; padding-right: 4px; }
     
-    .card { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
-    .card-title { font-size: 14px; font-weight: 600; color: var(--heading); margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; }
+    /* ORTA/SAĞ PANEL: CANLI LOGLAR */
+    .main-view { flex-grow: 1; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+    
+    .card { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; }
+    .card-title { font-size: 13px; font-weight: 600; color: var(--heading); margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; }
     
     .header-bar { display: flex; align-items: center; justify-content: space-between; padding: 12px 18px; }
     .brand { font-size: 20px; font-weight: 700; color: var(--heading); display: flex; align-items: center; gap: 8px; }
@@ -467,7 +496,7 @@ HTML_DASHBOARD = """<!DOCTYPE html>
     }
     input:focus { outline: none; border-color: var(--highlight); }
 
-    .toggle-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; font-size: 13px; }
+    .toggle-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px; font-size: 12px; }
     
     .auth-box { background: #0d1117; border: 1px dashed var(--border); border-radius: 6px; padding: 12px; text-align: center; margin-bottom: 12px; }
     .code-display { font-family: monospace; font-size: 22px; font-weight: 700; color: #3fb950; letter-spacing: 3px; margin: 8px 0; }
@@ -532,45 +561,66 @@ HTML_DASHBOARD = """<!DOCTYPE html>
 </head>
 <body>
   <div id="toast" class="toast">✓ İşlem başarılı</div>
+
+  <!-- 1. ÜST HEADER: TAM GENİŞLİK, MARKA + HESAP DURUMU + KONTROLLER -->
+  <div class="top-header">
+    <div style="display: flex; align-items: center; gap: 20px;">
+      <div class="brand">
+        ⚡ TitForGit <span class="badge">v1.0.0 Self-Hosted</span>
+      </div>
+
+      <!-- HEADER AUTH ALANI (STATE-AWARE) -->
+      <div id="authHeaderArea" style="display: flex; align-items: center; gap: 10px;">
+        <!-- DURUM A: GİRİŞ YAPILMIŞ -->
+        <div id="loggedInState" style="display: none; align-items: center; gap: 10px; background: rgba(255,255,255,0.03); padding: 4px 10px; border-radius: 6px; border: 1px solid var(--border);">
+          <img id="userAvatar" src="" style="width: 24px; height: 24px; border-radius: 50%; border: 1px solid var(--border);" />
+          <span id="accountLogin" style="font-size: 13px; font-weight: 700; color: var(--heading);">@user</span>
+          <button class="btn btn-secondary" id="disconnectBtn" style="padding: 2px 8px; font-size: 11px; color: var(--danger); border-color: #da363344;" onclick="logoutGitHub()">Bağlantıyı Kes</button>
+        </div>
+
+        <!-- DURUM B: GİRİŞ YAPILMAMIŞ -->
+        <div id="loggedOutState" style="display: flex; align-items: center; gap: 8px;">
+          <button class="btn btn-secondary" style="padding: 4px 10px; font-size: 11px;" onclick="startDeviceFlow()">🔑 GitHub ile Bağlan</button>
+          <input type="password" id="ghToken" placeholder="Veya PAT Token (ghp_...)" style="width: 170px; margin-bottom: 0; padding: 4px 8px; font-size: 11px;" onchange="saveConfig()" />
+          <div id="flowArea" style="display: none; align-items: center; gap: 8px;">
+            <span class="code-display" id="userCode" style="font-size: 14px; margin: 0; letter-spacing: 1px;">----</span>
+            <a id="authLink" href="#" target="_blank" class="btn" style="padding: 3px 8px; font-size: 11px;">GitHub'da Onayla</a>
+            <span id="pollStatus" style="font-size: 11px; color: var(--highlight);">Onay bekleniyor...</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SAĞ KONTROLLER: DİL, TEMA, AÇIK/KAPALI TOGGLE -->
+    <div style="display: flex; align-items: center; gap: 14px;">
+      <!-- Dil Seçici (TR / EN) -->
+      <button class="btn btn-secondary" id="langBtn" onclick="toggleLanguage()" style="padding: 4px 10px; font-size: 11px;">
+        🌐 <b>TR</b> / EN
+      </button>
+
+      <!-- Tema Seçici (Dark / Light) -->
+      <button class="btn btn-secondary" id="themeBtn" onclick="toggleTheme()" style="padding: 4px 10px; font-size: 11px;">
+        🌙 Dark
+      </button>
+
+      <!-- Canlı Switch Toggle (Tek Kontrol) -->
+      <label class="switch-wrap">
+        <span id="switchLabel" style="color: #3fb950;">Açık</span>
+        <div class="switch">
+          <input type="checkbox" id="patrolSwitch" checked onchange="togglePatrolSwitch(this.checked)">
+          <span class="slider"></span>
+        </div>
+      </label>
+    </div>
+  </div>
   
+  <!-- 2. ANA DÜZEN: SOL AYARLAR + SAĞ LOG TERMİNALİ -->
   <div class="layout">
     <!-- SOL: DİKEY AYARLAR PANELİ -->
     <div class="sidebar">
-      <!-- 1. GİRİŞ KARTI (STATE-AWARE: LOGGED IN VS LOGGED OUT) -->
-      <div class="card" id="authCard">
-        <div class="card-title">🔐 1. GitHub Bağlantısı</div>
-        
-        <!-- DURUM A: GİRİŞ YAPILMIŞ (LOGGED IN) -->
-        <div id="loggedInState" style="display: none;">
-          <div style="display: flex; align-items: center; gap: 12px; background: #0d1117; padding: 12px; border-radius: 6px; border: 1px solid var(--border); margin-bottom: 12px;">
-            <img id="userAvatar" src="" style="width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border);" />
-            <div style="flex-grow: 1; min-width: 0;">
-              <div style="font-size: 11px; color: #3fb950; font-weight: 600;">✓ BAĞLI HESAP</div>
-              <div id="accountLogin" style="font-size: 14px; font-weight: 700; color: var(--heading);">@user</div>
-            </div>
-          </div>
-          <button class="btn btn-secondary" id="disconnectBtn" style="width: 100%; justify-content: center; color: var(--danger); border-color: #da363344;" onclick="logoutGitHub()">Bağlantıyı Kes</button>
-        </div>
-
-        <!-- DURUM B: GİRİŞ YAPILMAMIŞ (LOGGED OUT) -->
-        <div id="loggedOutState">
-          <div class="auth-box">
-            <div style="font-size: 12px; font-weight: 500;">Tarayıcı ile Tek Tıkla Bağlan</div>
-            <button class="btn btn-secondary" style="margin-top: 8px; width: 100%; justify-content: center;" onclick="startDeviceFlow()">Cihaz Kodu Üret</button>
-            <div id="flowArea" style="display: none; margin-top: 10px;">
-              <div class="code-display" id="userCode">----</div>
-              <a id="authLink" href="#" target="_blank" class="btn" style="width: 100%; justify-content: center; margin-top: 4px;">GitHub'da Aç & Onayla</a>
-              <div id="pollStatus" style="font-size: 11px; color: var(--highlight); margin-top: 6px;">Onay bekleniyor...</div>
-            </div>
-          </div>
-          <label>Veya PAT Token Yapıştır</label>
-          <input type="password" id="ghToken" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" />
-        </div>
-      </div>
-
-      <!-- 2. BÜYÜME VE HEDEFLER -->
+      <!-- 1. BÜYÜME VE HEDEFLER -->
       <div class="card">
-        <div class="card-title">🎯 2. Tit-for-Tat Kuralları</div>
+        <div class="card-title">🎯 1. Tit-for-Tat Kuralları</div>
         <div class="toggle-row">
           <span>🤝 Smart Follow-Back <span class="info-tip" data-tooltip="Sizi takip eden geliştiricileri otomatik olarak geri takip eder.">?</span></span>
           <input type="checkbox" id="autoFollow" checked />
@@ -594,23 +644,22 @@ HTML_DASHBOARD = """<!DOCTYPE html>
         <label style="margin-top: 8px;">Hedef Konular (Topics) <span class="info-tip" data-tooltip="Aranacak GitHub topic etiketleri. Virgülle ayırarak yazın.">?</span></label>
         <input type="text" id="targetTopics" value="delphi, mcp, python-agent" />
         <div style="display: flex; gap: 8px;">
-          <div><label>Min ★ <span class="info-tip" data-tooltip="Çok çöp repolara düşmemek için alt sınır.">?</span></label><input type="text" id="minStars" value="5" /></div>
-          <div><label>Max ★ <span class="info-tip" data-tooltip="Büyük repolar yerine sizi fark edecek niş repolar için üst sınır.">?</span></label><input type="text" id="maxStars" value="150" /></div>
-          <div><label>Döngü Başı <span class="info-tip" data-tooltip="Her çalışma turunda en fazla kaç repoya star atılacağı (anti-ban limiti).">?</span></label><input type="text" id="dailyLimit" value="2" /></div>
+          <div style="flex: 1;"><label>Min ★ <span class="info-tip" data-tooltip="Çok çöp repolara düşmemek için alt sınır.">?</span></label><input type="text" id="minStars" value="5" /></div>
+          <div style="flex: 1;"><label>Max ★ <span class="info-tip" data-tooltip="Büyük repolar yerine sizi fark edecek niş repolar için üst sınır.">?</span></label><input type="text" id="maxStars" value="150" /></div>
+          <div style="flex: 1;"><label>Döngü Başı <span class="info-tip" data-tooltip="Her çalışma turunda en fazla kaç repoya star atılacağı (anti-ban limiti).">?</span></label><input type="text" id="dailyLimit" value="2" /></div>
+          <div style="flex: 1;"><label>Aralık (Dk) <span class="info-tip" data-tooltip="Motorun kaç dakikada bir uyanıp yeni etkileşim arayacağı.">?</span></label><input type="text" id="intervalMinutes" value="60" placeholder="60" /></div>
         </div>
-        <label style="margin-top: 4px;">Çalışma Aralığı (Dakika) <span class="info-tip" data-tooltip="Motorun kaç dakikada bir uyanıp yeni etkileşim arayacağı.">?</span></label>
-        <input type="text" id="intervalMinutes" value="60" placeholder="Örn: 60 (varsayılan: 1 saat)" />
       </div>
 
-      <!-- 3. TELEGRAM RADAR & KAYDET -->
+      <!-- 2. TELEGRAM RADAR & KAYDET -->
       <div class="card">
-        <div class="card-title">📡 3. Telegram Canlı Radar <span class="info-tip" data-tooltip="Gelen yıldız, takip ve fork olaylarını anında Telegram'a iletir. Boş bırakırsanız sadece yerel log tutar.">?</span></div>
+        <div class="card-title">📡 2. Telegram Canlı Radar <span class="info-tip" data-tooltip="Gelen yıldız, takip ve fork olaylarını anında Telegram'a iletir. Boş bırakırsanız sadece yerel log tutar.">?</span></div>
         <input type="text" id="tgBotToken" placeholder="Bot Token (Opsiyonel @BotFather)" />
         <input type="text" id="tgChatId" placeholder="Chat ID (Opsiyonel)" />
         <button class="btn" id="saveBtn" style="width: 100%; justify-content: center; margin-top: 4px;" onclick="saveConfig()">💾 Ayarları Kaydet</button>
       </div>
 
-      <!-- 4. GELİŞTİRİCİ KÜNYESİ & AÇIK KAYNAK DESTEK KARTI -->
+      <!-- 3. GELİŞTİRİCİ KÜNYESİ & AÇIK KAYNAK DESTEK KARTI -->
       <div class="card" style="background: rgba(22, 27, 34, 0.6); border: 1px dashed var(--border); padding: 12px; font-size: 11px;">
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
           <span style="font-weight: 600; color: var(--heading);">👨‍💻 Açık Kaynak Ekosistemi</span>
@@ -624,34 +673,8 @@ HTML_DASHBOARD = """<!DOCTYPE html>
       </div>
     </div>
 
-    <!-- ORTA / SAĞ: BAŞLIK VE GENİŞ LOG EKRANI -->
+    <!-- ORTA / SAĞ: GENİŞ LOG EKRANI -->
     <div class="main-view">
-      <div class="card header-bar">
-        <div class="brand">
-          ⚡ TitForGit <span class="badge">v1.0.0 Self-Hosted</span>
-        </div>
-        <div style="display: flex; align-items: center; gap: 16px;">
-          <!-- Dil Seçici (TR / EN) -->
-          <button class="btn btn-secondary" id="langBtn" onclick="toggleLanguage()" style="padding: 4px 10px; font-size: 11px;">
-            🌐 <b>TR</b> / EN
-          </button>
-
-          <!-- Tema Seçici (Dark / Light) -->
-          <button class="btn btn-secondary" id="themeBtn" onclick="toggleTheme()" style="padding: 4px 10px; font-size: 11px;">
-            🌙 Dark
-          </button>
-
-          <!-- Sade Canlı Switch Toggle (Tek Kontrol) -->
-          <label class="switch-wrap">
-            <span id="switchLabel" style="color: #3fb950;">Açık</span>
-            <div class="switch">
-              <input type="checkbox" id="patrolSwitch" checked onchange="togglePatrolSwitch(this.checked)">
-              <span class="slider"></span>
-            </div>
-          </label>
-        </div>
-      </div>
-
       <div class="card log-card">
         <div class="card-title">
           <span>📋 TitForGit Canlı Akış & Radar</span>
