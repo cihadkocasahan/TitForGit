@@ -459,8 +459,12 @@ HTML_DASHBOARD = """<!DOCTYPE html>
     }
     @media (max-width: 900px) {
       html, body { overflow: auto; height: auto; }
-      .app-container { height: auto; }
-      .layout { flex-direction: column; }
+      .app-container { height: auto; min-height: 100vh; }
+      .layout { flex-direction: column; height: auto; }
+      .sidebar { width: 100%; overflow-y: visible; }
+      .main-view { height: 500px; min-height: 400px; }
+      .top-header { flex-direction: column; gap: 10px; align-items: flex-start; }
+      .top-header > div:last-child { width: 100%; justify-content: space-between; }
     }
 
     /* SOL PANEL: AYARLAR (380px) */
@@ -946,6 +950,7 @@ HTML_DASHBOARD = """<!DOCTYPE html>
         creatorFlagship: 'Flagship Project:',
         actionsGuideBtn: '☁️ Actions Guide',
         connectBtn: '🔑 Connect GitHub',
+        logStreamTitle: '📋 TitForGit Live Stream & Radar',
         mAuthTitle: '🔐 GitHub Connection',
         mDeviceTitle: 'Method A: One-Click Browser Authorization',
         mDeviceBtn: 'Get 8-Digit Device Code',
