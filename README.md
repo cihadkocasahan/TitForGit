@@ -92,6 +92,14 @@ Ideal for home labs, VPS, Raspberry Pi, or local machines.
    docker compose up -d
    ```
 
-3. Open **`http://localhost:8080`** in your browser:
-   - Use the **Browser Device Flow** button to link your GitHub account in 5 seconds.
-   - Or paste your PAT token, set your Telegram bot, and configure your growth rules.
+3. Open **`http://localhost:8080`** in browser:
+   - Use **Browser Device Flow** button link GitHub account in 5 seconds.
+   - Or paste PAT token, set Telegram bot, and configure growth rules.
+
+---
+
+## ⚖️ Commercial Use, Fair Use & Disclaimer
+
+- **Commercial & Personal Use:** Licensed under the MIT License. You are free to run, host, modify, and distribute this software for personal or commercial workflows.
+- **Fair Use & Anti-Ban:** TitForGit operates strictly within GitHub's API rate limits. It incorporates random micro-jitter delays (15–35s) and strict batch micro-dosing (1–2 actions per cycle) designed to prevent aggressive spamming or bot behavior.
+- **Disclaimer:** This tool is designed for reciprocal developer engagement and repository discovery. The authors and maintainers take no responsibility for misuse, violation of third-party Terms of Service, or any account limitations resulting from improper rate configuration. Use responsibly.

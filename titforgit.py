@@ -430,6 +430,42 @@ HTML_DASHBOARD = """<!DOCTYPE html>
     }
     .toast.show { opacity: 1; transform: translateY(0); pointer-events: auto; }
     .toast.error { background: #da3633; }
+    .info-tip {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--text);
+      font-size: 10px;
+      cursor: help;
+      margin-left: 6px;
+      position: relative;
+    }
+    .info-tip:hover {
+      background: var(--accent);
+      color: #fff;
+    }
+    .info-tip:hover::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      left: 20px;
+      top: -6px;
+      background: #161b22;
+      border: 1px solid var(--border);
+      color: var(--heading);
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      white-space: normal;
+      width: 220px;
+      line-height: 1.4;
+      z-index: 100;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+      pointer-events: none;
+    }
   </style>
 </head>
 <body>
@@ -474,32 +510,32 @@ HTML_DASHBOARD = """<!DOCTYPE html>
       <div class="card">
         <div class="card-title">🎯 2. Tit-for-Tat Kuralları</div>
         <div class="toggle-row">
-          <span>🤝 Smart Follow-Back</span>
+          <span>🤝 Smart Follow-Back <span class="info-tip" data-tooltip="Sizi takip eden geliştiricileri otomatik olarak geri takip eder.">?</span></span>
           <input type="checkbox" id="autoFollow" checked />
         </div>
         <div class="toggle-row">
-          <span>🎯 Organik Niş Keşif (Star)</span>
+          <span>🎯 Organik Niş Keşif (Star) <span class="info-tip" data-tooltip="Belirlediğiniz konulardaki yükselen repoları keşfedip yıldız bırakır.">?</span></span>
           <input type="checkbox" id="nicheEnabled" checked />
         </div>
         <div class="toggle-row">
-          <span>👤 Repo Sahibini Takip Et</span>
+          <span>👤 Repo Sahibini Takip Et <span class="info-tip" data-tooltip="Keşfedilip yıldız verilen projenin yazarını da takibe alır.">?</span></span>
           <input type="checkbox" id="followOwner" checked />
         </div>
-        <label style="margin-top: 8px;">Hedef Konular (Topics)</label>
+        <label style="margin-top: 8px;">Hedef Konular (Topics) <span class="info-tip" data-tooltip="Aranacak GitHub topic etiketleri. Virgülle ayırarak yazın.">?</span></label>
         <input type="text" id="targetTopics" value="delphi, mcp, python-agent" />
         <div style="display: flex; gap: 8px;">
-          <div><label>Min ★</label><input type="text" id="minStars" value="5" /></div>
-          <div><label>Max ★</label><input type="text" id="maxStars" value="150" /></div>
-          <div><label>Döngü Başı</label><input type="text" id="dailyLimit" value="2" /></div>
+          <div><label>Min ★ <span class="info-tip" data-tooltip="Çok çöp repolara düşmemek için alt sınır.">?</span></label><input type="text" id="minStars" value="5" /></div>
+          <div><label>Max ★ <span class="info-tip" data-tooltip="Büyük repolar yerine sizi fark edecek niş repolar için üst sınır.">?</span></label><input type="text" id="maxStars" value="150" /></div>
+          <div><label>Döngü Başı <span class="info-tip" data-tooltip="Her çalışma turunda en fazla kaç repoya star atılacağı (anti-ban limiti).">?</span></label><input type="text" id="dailyLimit" value="2" /></div>
         </div>
-        <label style="margin-top: 4px;">Çalışma Aralığı (Dakika)</label>
+        <label style="margin-top: 4px;">Çalışma Aralığı (Dakika) <span class="info-tip" data-tooltip="Motorun kaç dakikada bir uyanıp yeni etkileşim arayacağı.">?</span></label>
         <input type="text" id="intervalMinutes" value="60" placeholder="Örn: 60 (varsayılan: 1 saat)" />
       </div>
 
       <!-- 3. TELEGRAM RADAR & KAYDET -->
       <div class="card">
-        <div class="card-title">📡 3. Telegram Canlı Radar</div>
-        <input type="text" id="tgBotToken" placeholder="Bot Token (Opsiyonel)" />
+        <div class="card-title">📡 3. Telegram Canlı Radar <span class="info-tip" data-tooltip="Gelen yıldız, takip ve fork olaylarını anında Telegram'a iletir. Boş bırakırsanız sadece yerel log tutar.">?</span></div>
+        <input type="text" id="tgBotToken" placeholder="Bot Token (Opsiyonel @BotFather)" />
         <input type="text" id="tgChatId" placeholder="Chat ID (Opsiyonel)" />
         <button class="btn" style="width: 100%; justify-content: center; margin-top: 4px;" onclick="saveConfig()">💾 Ayarları Kaydet</button>
       </div>
