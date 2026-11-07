@@ -155,6 +155,16 @@ class TitForGitEngine:
             config.get("telegram_chat_id", "")
         )
         self.state = self._load_state()
+        self.authenticated_user_cache = None
+        self._refresh_user_cache()
+
+    def _refresh_user_cache(self):
+        if self.config.get("github_token"):
+            def _fetch():
+                self.authenticated_user_cache = self.gh.get_authenticated_user()
+            threading.Thread(target=_fetch, daemon=True).start()
+        else:
+            self.authenticated_user_cache = None
 
     def update_config(self, new_config: dict):
         self.config.update(new_config)
@@ -163,6 +173,7 @@ class TitForGitEngine:
             self.config.get("telegram_bot_token", ""),
             self.config.get("telegram_chat_id", "")
         )
+        self._refresh_user_cache()
 
     def _load_state(self) -> dict:
         if os.path.exists(STATE_FILE):
@@ -371,8 +382,20 @@ HTML_DASHBOARD = """<!DOCTYPE html>
     .btn:hover { background: var(--accent-hover); }
     .btn-secondary { background: #21262d; border: 1px solid var(--border); color: var(--text); }
     .btn-secondary:hover { background: #30363d; color: var(--heading); }
-    .btn-pause { background: #21262d; border: 1px solid var(--warning); color: var(--warning); }
-    .btn-pause:hover { background: #d2992222; }
+    /* Modern Canlı Switch Toggle */
+    .switch-wrap { display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 600; cursor: pointer; user-select: none; }
+    .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider {
+      position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+      background-color: #30363d; transition: .25s; border-radius: 24px; border: 1px solid var(--border);
+    }
+    .slider:before {
+      position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px;
+      background-color: #8b949e; transition: .25s; border-radius: 50%;
+    }
+    input:checked + .slider { background-color: #238636; border-color: #3fb95066; }
+    input:checked + .slider:before { transform: translateX(20px); background-color: #fff; }
 
     label { display: block; font-size: 12px; font-weight: 500; margin-bottom: 4px; color: var(--text); }
     input[type="text"], input[type="password"] {
@@ -414,25 +437,41 @@ HTML_DASHBOARD = """<!DOCTYPE html>
   <div class="layout">
     <!-- SOL: DİKEY AYARLAR PANELİ -->
     <div class="sidebar">
-      <!-- 1. GİRİŞ -->
-      <div class="card">
-        <div class="card-title">🔐 1. GitHub Girişi</div>
-        <div class="auth-box">
-          <div style="font-size: 12px; font-weight: 500;">Tarayıcı ile Tek Tıkla Bağlan</div>
-          <button class="btn btn-secondary" style="margin-top: 8px; width: 100%; justify-content: center;" onclick="startDeviceFlow()">Cihaz Kodu Üret</button>
-          <div id="flowArea" style="display: none; margin-top: 10px;">
-            <div class="code-display" id="userCode">----</div>
-            <a id="authLink" href="#" target="_blank" class="btn" style="width: 100%; justify-content: center; margin-top: 4px;">GitHub'da Aç & Onayla</a>
-            <div id="pollStatus" style="font-size: 11px; color: var(--highlight); margin-top: 6px;">Onay bekleniyor...</div>
+      <!-- 1. GİRİŞ KARTI (STATE-AWARE: LOGGED IN VS LOGGED OUT) -->
+      <div class="card" id="authCard">
+        <div class="card-title">🔐 1. GitHub Bağlantısı</div>
+        
+        <!-- DURUM A: GİRİŞ YAPILMIŞ (LOGGED IN) -->
+        <div id="loggedInState" style="display: none;">
+          <div style="display: flex; align-items: center; gap: 12px; background: #0d1117; padding: 12px; border-radius: 6px; border: 1px solid var(--border); margin-bottom: 12px;">
+            <img id="userAvatar" src="" style="width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border);" />
+            <div style="flex-grow: 1; min-width: 0;">
+              <div style="font-size: 11px; color: #3fb950; font-weight: 600;">✓ BAĞLI HESAP</div>
+              <div id="accountLogin" style="font-size: 14px; font-weight: 700; color: var(--heading);">@user</div>
+            </div>
           </div>
+          <button class="btn btn-secondary" style="width: 100%; justify-content: center; color: var(--danger); border-color: #da363344;" onclick="logoutGitHub()">Bağlantıyı Kes / Çıkış Yap</button>
         </div>
-        <label>Veya PAT Token Yapıştır</label>
-        <input type="password" id="ghToken" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" />
+
+        <!-- DURUM B: GİRİŞ YAPILMAMIŞ (LOGGED OUT) -->
+        <div id="loggedOutState">
+          <div class="auth-box">
+            <div style="font-size: 12px; font-weight: 500;">Tarayıcı ile Tek Tıkla Bağlan</div>
+            <button class="btn btn-secondary" style="margin-top: 8px; width: 100%; justify-content: center;" onclick="startDeviceFlow()">Cihaz Kodu Üret</button>
+            <div id="flowArea" style="display: none; margin-top: 10px;">
+              <div class="code-display" id="userCode">----</div>
+              <a id="authLink" href="#" target="_blank" class="btn" style="width: 100%; justify-content: center; margin-top: 4px;">GitHub'da Aç & Onayla</a>
+              <div id="pollStatus" style="font-size: 11px; color: var(--highlight); margin-top: 6px;">Onay bekleniyor...</div>
+            </div>
+          </div>
+          <label>Veya PAT Token Yapıştır</label>
+          <input type="password" id="ghToken" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" />
+        </div>
       </div>
 
       <!-- 2. BÜYÜME VE HEDEFLER -->
       <div class="card">
-        <div class="card-title">🎯 2. Büyüme Kuralları</div>
+        <div class="card-title">🎯 2. Tit-for-Tat Kuralları</div>
         <div class="toggle-row">
           <span>🤝 Smart Follow-Back</span>
           <input type="checkbox" id="autoFollow" checked />
@@ -445,7 +484,7 @@ HTML_DASHBOARD = """<!DOCTYPE html>
           <span>👤 Repo Sahibini Takip Et</span>
           <input type="checkbox" id="followOwner" checked />
         </div>
-        <label style="margin-top: 8px;">Hedef Konular</label>
+        <label style="margin-top: 8px;">Hedef Konular (Topics)</label>
         <input type="text" id="targetTopics" value="delphi, mcp, python-agent" />
         <div style="display: flex; gap: 8px;">
           <div><label>Min ★</label><input type="text" id="minStars" value="5" /></div>
@@ -456,7 +495,7 @@ HTML_DASHBOARD = """<!DOCTYPE html>
 
       <!-- 3. TELEGRAM RADAR & KAYDET -->
       <div class="card">
-        <div class="card-title">📡 3. Telegram Radarı</div>
+        <div class="card-title">📡 3. Telegram Canlı Radar</div>
         <input type="text" id="tgBotToken" placeholder="Bot Token (Opsiyonel)" />
         <input type="text" id="tgChatId" placeholder="Chat ID (Opsiyonel)" />
         <button class="btn" style="width: 100%; justify-content: center; margin-top: 4px;" onclick="saveConfig()">💾 Ayarları Kaydet</button>
@@ -469,16 +508,33 @@ HTML_DASHBOARD = """<!DOCTYPE html>
         <div class="brand">
           ⚡ TitForGit <span class="badge">v1.0.0 Self-Hosted</span>
         </div>
-        <div class="btn-group">
-          <button id="toggleBtn" class="btn btn-pause" onclick="togglePatrol()">⏸ Devriyeyi Durdur</button>
+        <div class="btn-group" style="align-items: center; gap: 16px;">
+          <!-- Canlı Switch Toggle -->
+          <label class="switch-wrap">
+            <span id="switchLabel" style="color: #3fb950;">Motor Aktif</span>
+            <div class="switch">
+              <input type="checkbox" id="patrolSwitch" checked onchange="togglePatrolSwitch(this.checked)">
+              <span class="slider"></span>
+            </div>
+          </label>
           <button class="btn" onclick="triggerRun()">▶ Şimdi Çalıştır</button>
         </div>
       </div>
 
       <div class="card log-card">
         <div class="card-title">
-          <span>📋 Canlı Devriye Logları & Radar</span>
-          <span id="patrolBadge" style="font-size: 11px; color: #3fb950;">● Devriye Aktif (1 saatte bir)</span>
+          <span>📋 TitForGit Canlı Akış & Radar</span>
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <!-- Canlı Filtre Arama Kutusu -->
+            <input type="text" id="logFilter" placeholder="🔍 Loglarda ara (star, follow, saat...)" 
+                   style="margin-bottom: 0; padding: 4px 10px; font-size: 11px; width: 220px;" oninput="applyLogFilter()" />
+            <!-- Auto-scroll Switch -->
+            <label style="display: flex; align-items: center; gap: 5px; font-size: 11px; cursor: pointer; user-select: none; color: var(--text);">
+              <input type="checkbox" id="autoScroll" checked />
+              <span>Oto-Kaydır</span>
+            </label>
+            <span id="patrolBadge" style="font-size: 11px; color: #3fb950;">● Motor Aktif</span>
+          </div>
         </div>
         <div class="log-terminal" id="logBox">
           <div class="log-entry">[*] TitForGit Konsolu hazır.</div>
@@ -490,6 +546,7 @@ HTML_DASHBOARD = """<!DOCTYPE html>
   <script>
     let pollInterval = null;
     let isPaused = false;
+    let allLogs = [];
 
     function showToast(msg, isError = false) {
       const t = document.getElementById('toast');
@@ -509,34 +566,64 @@ HTML_DASHBOARD = """<!DOCTYPE html>
       document.getElementById('followOwner').checked = !!cfg.follow_target_owner;
       if (cfg.target_topics) document.getElementById('targetTopics').value = cfg.target_topics.join(', ');
       
+      await checkStatus();
+      refreshLogs();
+    }
+
+    async function checkStatus() {
       const sRes = await fetch('/api/status');
       const sData = await sRes.json();
       updateStatusUI(sData.is_paused);
+      updateAuthUI(sData);
+    }
+
+    function updateAuthUI(data) {
+      const loggedInDiv = document.getElementById('loggedInState');
+      const loggedOutDiv = document.getElementById('loggedOutState');
+      if (data.logged_in && data.username) {
+        loggedInDiv.style.display = 'block';
+        loggedOutDiv.style.display = 'none';
+        document.getElementById('accountLogin').innerText = '@' + data.username;
+        if (data.avatar_url) document.getElementById('userAvatar').src = data.avatar_url;
+      } else {
+        loggedInDiv.style.display = 'none';
+        loggedOutDiv.style.display = 'block';
+      }
+    }
+
+    async function logoutGitHub() {
+      await fetch('/api/logout', { method: 'POST' });
+      document.getElementById('ghToken').value = '';
+      showToast('Oturum kapatıldı.');
+      await checkStatus();
       refreshLogs();
     }
 
     function updateStatusUI(paused) {
       isPaused = paused;
-      const btn = document.getElementById('toggleBtn');
+      const sw = document.getElementById('patrolSwitch');
+      const lbl = document.getElementById('switchLabel');
       const badge = document.getElementById('patrolBadge');
+      
+      sw.checked = !isPaused;
       if (isPaused) {
-        btn.innerText = '▶ Devriyeyi Başlat';
-        btn.className = 'btn';
+        lbl.innerText = 'Devriye Kapalı';
+        lbl.style.color = '#8b949e';
         badge.innerText = '○ Devriye Duraklatıldı';
         badge.style.color = '#8b949e';
       } else {
-        btn.innerText = '⏸ Devriyeyi Durdur';
-        btn.className = 'btn btn-pause';
+        lbl.innerText = 'Devriye Aktif';
+        lbl.style.color = '#3fb950';
         badge.innerText = '● Devriye Aktif (1 saatte bir)';
         badge.style.color = '#3fb950';
       }
     }
 
-    async function togglePatrol() {
+    async function togglePatrolSwitch(isActive) {
       const res = await fetch('/api/toggle', { method: 'POST' });
       const data = await res.json();
       updateStatusUI(data.is_paused);
-      showToast(data.is_paused ? '⏸ Devriye durduruldu' : '▶ Devriye başlatıldı');
+      showToast(data.is_paused ? '⏸ Devriye duraklatıldı' : '▶ Devriye başlatıldı');
       refreshLogs();
     }
 
@@ -555,6 +642,7 @@ HTML_DASHBOARD = """<!DOCTYPE html>
       };
       await fetch('/api/config', { method: 'POST', body: JSON.stringify(payload) });
       showToast('✓ Ayarlar kaydedildi!');
+      await checkStatus();
       refreshLogs();
     }
 
@@ -574,7 +662,7 @@ HTML_DASHBOARD = """<!DOCTYPE html>
           document.getElementById('ghToken').value = pData.access_token;
           document.getElementById('pollStatus').innerText = '✓ Bağlandı!';
           document.getElementById('pollStatus').style.color = '#3fb950';
-          saveConfig();
+          await saveConfig();
         } else if (pData.error === 'slow_down') {
           pollDelay += 5000;
           setTimeout(pollFn, pollDelay);
@@ -596,14 +684,25 @@ HTML_DASHBOARD = """<!DOCTYPE html>
     async function refreshLogs() {
       const res = await fetch('/api/logs');
       const data = await res.json();
+      allLogs = data.logs || [];
+      applyLogFilter();
+    }
+
+    function applyLogFilter() {
+      const filter = (document.getElementById('logFilter').value || '').toLowerCase();
+      const filtered = allLogs.filter(l => l.toLowerCase().includes(filter));
       const box = document.getElementById('logBox');
-      box.innerHTML = data.logs.map(l => {
+      box.innerHTML = filtered.map(l => {
         let cls = 'log-entry';
         if (l.includes('Star')) cls += ' star';
         else if (l.includes('takip')) cls += ' follow';
         else if (l.includes('tamamlandı') || l.includes('devrede')) cls += ' success';
         return `<div class="${cls}">${l}</div>`;
       }).join('');
+
+      if (document.getElementById('autoScroll').checked) {
+        box.scrollTop = box.scrollHeight;
+      }
     }
 
     setInterval(refreshLogs, 4000);
@@ -632,9 +731,13 @@ class WebServerHandler(BaseHTTPRequestHandler):
         elif parsed.path == "/api/config":
             self._send_json(self.engine.config)
         elif parsed.path == "/api/status":
+            user_data = self.engine.authenticated_user_cache
             self._send_json({
                 "is_paused": bool(self.engine.state.get("is_paused", False)),
-                "last_run": self.engine.state.get("last_run")
+                "last_run": self.engine.state.get("last_run"),
+                "logged_in": bool(user_data and "login" in user_data),
+                "username": user_data.get("login") if user_data else None,
+                "avatar_url": user_data.get("avatar_url") if user_data else None
             })
         elif parsed.path == "/api/logs":
             self._send_json({"logs": self.engine.state.get("logs", [])})
@@ -672,6 +775,13 @@ class WebServerHandler(BaseHTTPRequestHandler):
             state_text = "DURDURULDU" if self.engine.state["is_paused"] else "BAŞLATILDI"
             self.engine.log(f"Devriye nöbeti {state_text}.")
             self._send_json({"is_paused": self.engine.state["is_paused"]})
+        elif self.path == "/api/logout":
+            self.engine.config["github_token"] = ""
+            self.engine.update_config(self.engine.config)
+            with open(CONFIG_FILE, "w", encoding="utf-8") as f:
+                json.dump(self.engine.config, f, indent=2, ensure_ascii=False)
+            self.engine.log("GitHub oturumu kapatıldı (Token temizlendi).")
+            self._send_json({"status": "logged_out"})
         else:
             self.send_error(404)
 
@@ -732,7 +842,7 @@ if __name__ == "__main__":
     port = cfg.get("web_port", 8080)
     WebServerHandler.engine = engine
     server = HTTPServer(("0.0.0.0", port), WebServerHandler)
-    engine.log(f"TitForGit Web Arayüzü devrede: http://0.0.0.0:{port}")
+    engine.log(f"TitForGit Web Arayüzü devrede: port {port}")
     try:
         server.serve_forever()
     except KeyboardInterrupt:
