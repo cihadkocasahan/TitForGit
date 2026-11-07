@@ -712,8 +712,11 @@ HTML_DASHBOARD = """<!DOCTYPE html>
         </div>
       </div>
 
-      <!-- SAĞ KONTROLLER: DİL, TEMA, SWITCH -->
+      <!-- SAĞ KONTROLLER: DİL, TEMA, SWITCH, TELEGRAM -->
       <div style="display: flex; align-items: center; gap: 12px;">
+        <button class="btn btn-secondary" id="h_tgRadarBtn" onclick="openTgRadarModal()" style="padding: 4px 10px; font-size: 11px; min-width: 65px; justify-content: center;">
+          📡 Radar
+        </button>
         <button class="btn btn-secondary" id="langBtn" onclick="toggleLanguage()" style="padding: 4px 10px; font-size: 11px; min-width: 75px; justify-content: center;">
           🌐 <b>TR</b> / EN
         </button>
@@ -727,6 +730,27 @@ HTML_DASHBOARD = """<!DOCTYPE html>
             <span class="slider"></span>
           </div>
         </label>
+      </div>
+    </div>
+
+    <!-- MODAL: TELEGRAM RADAR AYARLARI -->
+    <div id="tgRadarModal" class="modal-overlay">
+      <div class="modal-box" style="width: 480px;">
+        <div class="modal-header">
+          <div class="modal-title" id="m_telegramRadarTitle">📡 Telegram Canlı Radar Ayarları</div>
+          <button class="close-btn" onclick="closeTgRadarModal()">✕</button>
+        </div>
+        <div style="font-size: 13px; color: var(--text); line-height: 1.5; margin-bottom: 14px;" id="m_telegramRadarDesc">
+          Gelen yıldız, takip ve fork olaylarını anında Telegram'a iletir. Boş bırakırsanız sadece yerel log tutar.
+        </div>
+        <label style="margin-top: 10px;">Bot Token (Opsiyonel @BotFather)</label>
+        <input type="text" id="tgBotToken" placeholder="TOKEN" />
+        <label style="margin-top: 10px;">Chat ID (Opsiyonel)</label>
+        <input type="text" id="tgChatId" placeholder="ID" />
+        <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 16px;">
+          <button class="btn btn-secondary" onclick="closeTgRadarModal()" id="m_cancelTgRadarBtn">İptal</button>
+          <button class="btn" onclick="saveConfig()" id="m_saveTgRadarBtn">💾 Ayarları Kaydet</button>
+        </div>
       </div>
     </div>
 
@@ -781,13 +805,7 @@ HTML_DASHBOARD = """<!DOCTYPE html>
           </div>
         </div>
 
-        <!-- 2. TELEGRAM CANLI RADAR -->
-        <div class="card">
-          <div class="card-title" id="t_radarTitle">📡 2. Telegram Canlı Radar <span class="info-tip" data-tooltip="Gelen yıldız, takip ve fork olaylarını anında Telegram'a iletir. Boş bırakırsanız sadece yerel log tutar.">?</span></div>
-          <input type="text" id="tgBotToken" placeholder="Bot Token (Opsiyonel @BotFather)" />
-          <input type="text" id="tgChatId" placeholder="Chat ID (Opsiyonel)" />
-          <button class="btn" id="saveBtn" style="width: 100%; justify-content: center; margin-top: 4px;" onclick="saveConfig()">💾 Ayarları Kaydet</button>
-        </div>
+        <!-- TELEGRAM RADAR MODALI -->
 
         <!-- 3. AÇIK KAYNAK DESTEK & GELİŞTİRİCİ KARTI -->
         <div class="card ecosystem-card">
@@ -811,6 +829,9 @@ HTML_DASHBOARD = """<!DOCTYPE html>
             <button class="btn btn-secondary" style="flex: 1; justify-content: center; font-size: 10px; padding: 5px;" onclick="openActionsModal()" id="t_actionsGuideBtn">☁️ Actions Rehberi</button>
           </div>
         </div>
+
+        <!-- 4. KAYDET -->
+        <button class="btn" id="saveBtn" style="width: 100%; justify-content: center; padding: 10px;" onclick="saveConfig()">💾 Ayarları Kaydet</button>
       </div>
 
       <!-- SAĞ: GENİŞ LOG TERMİNALİ -->
@@ -900,6 +921,9 @@ HTML_DASHBOARD = """<!DOCTYPE html>
         dailyLimit: 'Döngü Başı',
         interval: 'Aralık (Dk)',
         radarTitle: '📡 2. Telegram Canlı Radar',
+        radarBtn: '📡 Radar',
+        mTelegramRadarTitle: '📡 Telegram Canlı Radar Ayarları',
+        mTelegramRadarDesc: 'Gelen yıldız, takip ve fork olaylarını anında Telegram kanalınıza iletir. Boş bırakırsanız sadece yerel log tutar.',
         creatorTitle: '🤝 Açık Kaynak Yardımlaşması',
         creatorDev: 'Geliştirici:',
         creatorFlagship: 'Amiral Proje:',
@@ -945,6 +969,9 @@ HTML_DASHBOARD = """<!DOCTYPE html>
         dailyLimit: 'Per Cycle',
         interval: 'Interval (Min)',
         radarTitle: '📡 2. Telegram Live Radar',
+        radarBtn: '📡 Radar',
+        mTelegramRadarTitle: '📡 Telegram Live Radar Settings',
+        mTelegramRadarDesc: 'Instantly forwards new stars, follows and forks to Telegram. Leave empty to keep local logs only.',
         creatorTitle: '🤝 Open-Source Reciprocity',
         creatorDev: 'Developer:',
         creatorFlagship: 'Flagship Project:',
@@ -991,7 +1018,12 @@ HTML_DASHBOARD = """<!DOCTYPE html>
       document.getElementById('t_maxStars').innerText = t.maxStars;
       document.getElementById('t_dailyLimit').innerText = t.dailyLimit;
       document.getElementById('t_interval').innerText = t.interval;
-      document.getElementById('t_radarTitle').childNodes[0].nodeValue = t.radarTitle + ' ';
+      if (document.getElementById('t_radarTitle')) document.getElementById('t_radarTitle').childNodes[0].nodeValue = t.radarTitle + ' ';
+      document.getElementById('h_tgRadarBtn').innerText = t.radarBtn;
+      if (document.getElementById('m_telegramRadarTitle')) document.getElementById('m_telegramRadarTitle').innerText = t.mTelegramRadarTitle;
+      if (document.getElementById('m_telegramRadarDesc')) document.getElementById('m_telegramRadarDesc').innerText = t.mTelegramRadarDesc;
+      if (document.getElementById('m_saveTgRadarBtn')) document.getElementById('m_saveTgRadarBtn').innerText = t.saveBtn;
+      if (document.getElementById('m_cancelTgRadarBtn')) document.getElementById('m_cancelTgRadarBtn').innerText = t.mCancelBtn;
       document.getElementById('t_creatorTitle').innerText = t.creatorTitle;
       document.getElementById('t_creatorDev').innerText = t.creatorDev;
       document.getElementById('t_creatorFlagship').innerText = t.creatorFlagship;
@@ -1024,6 +1056,8 @@ HTML_DASHBOARD = """<!DOCTYPE html>
     function closeLogoutModal() { document.getElementById('logoutModal').classList.remove('active'); }
     function openActionsModal() { document.getElementById('actionsModal').classList.add('active'); }
     function closeActionsModal() { document.getElementById('actionsModal').classList.remove('active'); }
+    function openTgRadarModal() { document.getElementById('tgRadarModal').classList.add('active'); }
+    function closeTgRadarModal() { document.getElementById('tgRadarModal').classList.remove('active'); }
 
     async function loadConfig() {
       const res = await fetch('/api/config');
@@ -1109,6 +1143,7 @@ HTML_DASHBOARD = """<!DOCTYPE html>
         interval_minutes: parseInt(document.getElementById('intervalMinutes').value) || 60
       };
       await fetch('/api/config', { method: 'POST', body: JSON.stringify(payload) });
+      if (document.getElementById('tgRadarModal').classList.contains('active')) closeTgRadarModal();
       showToast('✓ Ayarlar kaydedildi!');
       await checkStatus();
       refreshLogs();
