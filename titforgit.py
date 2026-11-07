@@ -492,20 +492,28 @@ HTML_DASHBOARD = """<!DOCTYPE html>
       document.getElementById('flowArea').style.display = 'block';
 
       if (pollInterval) clearInterval(pollInterval);
-      pollInterval = setInterval(async () => {
+      let pollDelay = (data.interval || 5) * 1000;
+      
+      const pollFn = async () => {
         const pRes = await fetch(`/api/device/poll?device_code=${data.device_code}`);
         const pData = await pRes.json();
         if (pData.access_token) {
-          clearInterval(pollInterval);
           document.getElementById('ghToken').value = pData.access_token;
           document.getElementById('pollStatus').innerText = '✓ Başarıyla bağlandı ve kaydedildi!';
           document.getElementById('pollStatus').style.color = '#3fb950';
           saveConfig();
-        } else if (pData.error && pData.error !== 'authorization_pending') {
-          clearInterval(pollInterval);
+        } else if (pData.error === 'slow_down') {
+          // GitHub rate limit koruması: aralığı 5 saniye artır ve devam et
+          pollDelay += 5000;
+          setTimeout(pollFn, pollDelay);
+        } else if (pData.error === 'authorization_pending') {
+          setTimeout(pollFn, pollDelay);
+        } else {
           document.getElementById('pollStatus').innerText = 'Hata: ' + pData.error;
         }
-      }, (data.interval || 5) * 1000);
+      };
+      
+      setTimeout(pollFn, pollDelay);
     }
 
     async function triggerRun() {
