@@ -1109,7 +1109,7 @@ HTML_DASHBOARD = """<!DOCTYPE html>
     function applyLogFilter() {
       const filter = (document.getElementById('logFilter').value || '').toLowerCase();
       const filtered = allLogs.filter(l => l.toLowerCase().includes(filter));
-      const newStr = filtered.join('\n');
+      const newStr = filtered.join(String.fromCharCode(10));
       
       // Eğer loglarda bir değişiklik yoksa DOM'a dokunma! (Scrollbar zıplamasını çözen kural)
       if (newStr === lastRenderedLogsStr) return;
