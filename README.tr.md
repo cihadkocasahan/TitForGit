@@ -1,4 +1,6 @@
-# ⚡ TitForGit [![Awesome](https://awesome.re/badge.svg)](https://awesome.re) [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+<p align="center"><img src="titforgit-logo.svg" width="80" alt="TitForGit Logo"/></p>
+
+# TitForGit [![Awesome](https://awesome.re/badge.svg)](https://awesome.re) [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 <a href="README.md"><img src="https://flagcdn.com/20x15/gb.png" width="20" height="15" alt="English"> **English**</a> &nbsp;·&nbsp; <a href="README.tr.md"><img src="https://flagcdn.com/20x15/tr.png" width="20" height="15" alt="Türkçe"> **Türkçe**</a>
 
@@ -69,20 +71,6 @@ docker compose up -d
 - **🛡️ Anti-Ban Koruması** — Mikro-dozaj (döngü başına 1–2 işlem) + işlemler arası rastgele gecikme (15–35s)
 
 ---
-
-## 📸 Görsel Rehber
-
-### TitForGit Kontrol Paneli
-
-Container'ı başlatın ve `http://localhost:8080` adresinden kontrol paneline erişin:
-
-![TitForGit Dashboard](docs/images/step1_dashboard.png)
-
-**Akış Özeti:**
-1. **Dashboard'u Aç** → `http://localhost:8080`
-2. **Cihaz Kodu Üret** → "Cihaz Kodu Üret" butonuna tıkla → 8 karakterlik kod al
-3. **GitHub'da Yetkilendir** → `https://github.com/login/device` adresine git → Kodu gir → Onayla
-4. **Yapılandır & Çalıştır** → Konuları, kuralları, Telegram'ı ayarla → Motor otomatik çalışır
 
 ---
 

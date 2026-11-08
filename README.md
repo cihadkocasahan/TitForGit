@@ -1,4 +1,6 @@
-# ⚡ TitForGit [![Awesome](https://awesome.re/badge.svg)](https://awesome.re) [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+<p align="center"><img src="titforgit-logo.svg" width="80" alt="TitForGit Logo"/></p>
+
+# TitForGit [![Awesome](https://awesome.re/badge.svg)](https://awesome.re) [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 <a href="README.md"><img src="https://flagcdn.com/20x15/gb.png" width="20" height="15" alt="English"> **English**</a> &nbsp;·&nbsp; <a href="README.tr.md"><img src="https://flagcdn.com/20x15/tr.png" width="20" height="15" alt="Türkçe"> **Türkçe**</a>
 
@@ -70,20 +72,6 @@ docker compose up -d
 - **🛡️ Anti-Ban Protection** — Micro-dosing (1–2 actions/cycle) + random jitter delays (15–35s) between operations
 
 ---
-
-## 📸 Visual Walkthrough
-
-### TitForGit Control Dashboard
-
-Launch the container and access the control panel at `http://localhost:8080`:
-
-![TitForGit Dashboard](docs/images/step1_dashboard.png)
-
-**Flow Summary:**
-1. **Open Dashboard** → `http://localhost:8080`
-2. **Generate Device Code** → Click "Cihaz Kodu Üret" → Get 8-char code
-3. **Authorize on GitHub** → Go to `https://github.com/login/device` → Enter code → Authorize
-4. **Configure & Run** → Set topics, rules, Telegram → Engine runs automatically
 
 ---
 
