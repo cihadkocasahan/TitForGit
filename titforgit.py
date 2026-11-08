@@ -22,7 +22,7 @@ import threading
 import urllib.request
 import urllib.error
 import urllib.parse
-from http.server import HTTPServer, BaseHTTPRequestHandler
+from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from datetime import datetime, timezone
 
 DATA_DIR = os.getenv("TITFORGIT_DATA_DIR", "/data" if os.path.exists("/data") else ".")
@@ -610,6 +610,12 @@ HTML_DASHBOARD = """<!DOCTYPE html>
     .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
     .modal-title { font-size: 15px; font-weight: 700; color: var(--heading); }
     .close-btn { background: none; border: none; font-size: 18px; color: var(--text); cursor: pointer; }
+    .spinner {
+      width: 32px; height: 32px; border: 3px solid var(--border);
+      border-top-color: var(--accent); border-radius: 50%;
+      animation: spin 0.8s linear infinite; margin: 0 auto;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
     .code-display {
       font-family: monospace; font-size: 24px; font-weight: 700; color: #3fb950;
       letter-spacing: 3px; margin: 10px 0; text-align: center;
@@ -653,14 +659,20 @@ HTML_DASHBOARD = """<!DOCTYPE html>
         <div class="modal-title" id="m_logoutTitle">⚠️ Bağlantıyı Kes</div>
         <button class="close-btn" onclick="closeLogoutModal()">✕</button>
       </div>
-      <p style="font-size: 13px; color: var(--text); line-height: 1.5; margin-bottom: 14px;" id="m_logoutDesc">
-        GitHub bağlantınız sonlandırılacaktır. Bu hesaba ait verilerin durumunu seçin:
-      </p>
-      <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; margin-bottom: 16px; cursor: pointer;">
-        <input type="checkbox" id="clearAllDataCheck" />
-        <span id="m_clearAllLabel">Geçmiş etkileşim verilerini ve canlı logları da sıfırla</span>
-      </label>
-      <div style="display: flex; gap: 10px; justify-content: flex-end;">
+      <div id="logoutProgress" style="display: none; text-align: center; padding: 20px 0;">
+        <div class="spinner"></div>
+        <p style="font-size: 12px; color: var(--text); margin-top: 14px;" id="logoutProgressText">Oturum kapatılıyor, lütfen bekleyin...</p>
+      </div>
+      <div id="logoutBody">
+        <p style="font-size: 13px; color: var(--text); line-height: 1.5; margin-bottom: 14px;" id="m_logoutDesc">
+          GitHub bağlantınız sonlandırılacaktır. Bu hesaba ait verilerin durumunu seçin:
+        </p>
+        <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; margin-bottom: 16px; cursor: pointer;">
+          <input type="checkbox" id="clearAllDataCheck" />
+          <span id="m_clearAllLabel">Geçmiş etkileşim verilerini ve canlı logları da sıfırla</span>
+        </label>
+      </div>
+      <div style="display: flex; gap: 10px; justify-content: flex-end;" id="logoutButtons">
         <button class="btn btn-secondary" onclick="closeLogoutModal()" id="m_cancelBtn">İptal</button>
         <button class="btn" style="background: var(--danger);" onclick="confirmLogout()" id="m_confirmLogoutBtn">Bağlantıyı Kes</button>
       </div>
@@ -907,6 +919,10 @@ HTML_DASHBOARD = """<!DOCTYPE html>
         autoScroll: 'Oto-Kaydır',
         searchPlaceholder: '🔍 Loglarda ara...',
         disconnectBtn: 'Bağlantıyı Kes',
+        logoutProgressText: 'Oturum kapatılıyor, lütfen bekleyin...',
+        logoutClearProgress: 'Veriler sıfırlanıyor, lütfen bekleyin...',
+        logoutToast: 'Oturum kapatıldı.',
+        logoutClearToast: 'Oturum ve veriler sıfırlandı.',
         supportNowBtn: '💖 Şimdi Destekle',
         saveBtn: '💾 Ayarları Kaydet',
         clearLogsBtn: '🗑️ Temizle',
@@ -955,6 +971,10 @@ HTML_DASHBOARD = """<!DOCTYPE html>
         autoScroll: 'Auto-Scroll',
         searchPlaceholder: '🔍 Search logs...',
         disconnectBtn: 'Disconnect',
+        logoutProgressText: 'Closing session, please wait...',
+        logoutClearProgress: 'Resetting data, please wait...',
+        logoutToast: 'Session closed.',
+        logoutClearToast: 'Session and data reset.',
         supportNowBtn: '💖 Support Now',
         saveBtn: '💾 Save Settings',
         clearLogsBtn: '🗑️ Clear',
@@ -1205,13 +1225,26 @@ HTML_DASHBOARD = """<!DOCTYPE html>
 
     async function confirmLogout() {
       const clearAll = document.getElementById('clearAllDataCheck').checked;
-      await fetch('/api/logout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ clear_data: clearAll })
-      });
+      const t = i18n[currentLang] || i18n.tr;
+      document.getElementById('logoutBody').style.display = 'none';
+      document.getElementById('logoutButtons').style.display = 'none';
+      document.getElementById('logoutProgress').style.display = 'block';
+      const progressText = document.getElementById('logoutProgressText');
+      progressText.innerText = clearAll ? (t.logoutClearProgress || 'Veriler sıfırlanıyor, lütfen bekleyin...') : (t.logoutProgressText || 'Oturum kapatılıyor, lütfen bekleyin...');
+      try {
+        await fetch('/api/logout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ clear_data: clearAll })
+        });
+      } catch(e) {
+        console.warn('Logout fetch warning:', e);
+      }
       closeLogoutModal();
-      showToast(clearAll ? 'Oturum ve veriler sıfırlandı.' : 'Oturum kapatıldı.');
+      document.getElementById('logoutBody').style.display = '';
+      document.getElementById('logoutButtons').style.display = '';
+      document.getElementById('logoutProgress').style.display = 'none';
+      showToast(clearAll ? (t.logoutClearToast || 'Oturum ve veriler sıfırlandı.') : (t.logoutToast || 'Oturum kapatıldı.'));
       await checkStatus();
       refreshLogs();
     }
@@ -1454,7 +1487,7 @@ if __name__ == "__main__":
     # Web Dashboard Sunucusu (Zero-dependency stdlib)
     port = cfg.get("web_port", 8080)
     WebServerHandler.engine = engine
-    server = HTTPServer(("0.0.0.0", port), WebServerHandler)
+    server = ThreadingHTTPServer(("0.0.0.0", port), WebServerHandler)
     engine.log(f"TitForGit Web Arayüzü devrede: port {port}")
     try:
         server.serve_forever()
