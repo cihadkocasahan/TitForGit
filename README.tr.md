@@ -12,8 +12,8 @@ TitForGit, GitHub etkileşimi için **Tit-for-Tat** (Yıldız'a Yıldız, Takip'
 
 | | |
 |---|---|
-| [![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-Serverless-2088FF?logo=github-actions&logoColor=white)](#-yöntem-1-sunucusuz-github-actions) | [![Docker](https://img.shields.io/badge/Docker-~20_MB-2496ED?logo=docker&logoColor=white)](#-yöntem-2-docker-ile-kendi-sunucunuzda) |
-| [![Python 3.11](https://img.shields.io/badge/Python-3.11_Stdlib-3776AB?logo=python&logoColor=white)](https://python.org) | [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE) |
+| [![Docker](https://img.shields.io/badge/Docker-~20_MB-2496ED?logo=docker&logoColor=white)](#-hızlı-başlangıç) | [![Python 3.11](https://img.shields.io/badge/Python-3.11_Stdlib-3776AB?logo=python&logoColor=white)](https://python.org) |
+| [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE) | [![Awesome](https://awesome.re/badge.svg)](https://awesome.re) |
 
 ---
 
@@ -27,20 +27,9 @@ TitForGit bir eğitim amaçlı AI-native kodlama demosudur, ticari bir otomasyon
 
 ---
 
-## 🚀 Hızlı Başlangıç (Kurulum)
+## 🚀 Hızlı Başlangıç
 
-### Yöntem 1: Sunucusuz GitHub Actions
-
-GitHub'ın ücretsiz zamanlanmış runner'larıyla kendi fork'unuzda çalışır.
-
-1. **Fork'layın** — Bu depoyu fork'layın
-2. **Secrets ekleyin** — Fork'unuzda **Settings → Secrets and variables → Actions**
-   - `GH_PAT` — GitHub Kişisel Erişim Belirteci (`user:follow` & `public_repo` kapsamları)
-   - `TELEGRAM_BOT_TOKEN` — (İsteğe bağlı) `@BotFather`'dan alın
-   - `TELEGRAM_CHAT_ID` — (İsteğe bağlı) Sayısal Telegram Sohbet ID'niz
-3. **Etkinleştirin** — **Actions** sekmesinde workflow'ları etkinleştirin. TitForGit her 2 saatte otomatik çalışır ve durumu repo'nuza commit eder.
-
-### Yöntem 2: Docker ile Kendi Sunucunuzda (~20 MB)
+### Docker ile Kendi Sunucunuzda (~20 MB)
 
 Homelab, VPS, Raspberry Pi veya yerel makineler için idealdir.
 
@@ -55,6 +44,13 @@ docker compose up -d
 # 3. Tarayıcıda http://localhost:8080 adresini aç
 #    - "Cihaz Kodu Üret" ile GitHub'ı 5 saniyede bağla
 #    - Veya PAT token yapıştır, Telegram bot ayarla, büyüme kurallarını belirle
+```
+
+### Yerel Python ile Çalıştırma
+
+```bash
+# Python 3.10+ ile doğrudan çalıştırın
+python titforgit.py
 ```
 
 ---

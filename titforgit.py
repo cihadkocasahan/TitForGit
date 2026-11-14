@@ -679,28 +679,6 @@ HTML_DASHBOARD = """<!DOCTYPE html>
     </div>
   </div>
 
-  <!-- MODAL: SUNUCUSUZ GITHUB ACTIONS REHBERİ -->
-  <div id="actionsModal" class="modal-overlay">
-    <div class="modal-box" style="width: 480px;">
-      <div class="modal-header">
-        <div class="modal-title">☁️ Sunucusuz (GitHub Actions) Modu</div>
-        <button class="close-btn" onclick="closeActionsModal()">✕</button>
-      </div>
-      <div style="font-size: 12px; color: var(--text); line-height: 1.6;">
-        <p style="margin-bottom: 8px;">Docker veya ev sunucusu çalıştırmak istemiyorsanız, TitForGit tamamen <b>ücretsiz ve sunucusuz</b> çalışabilir:</p>
-        <ol style="margin-left: 20px; margin-bottom: 12px;">
-          <li>Bu repoyu GitHub üzerinde <b>Fork</b> edin.</li>
-          <li>Kendi reponuzda <b>Settings -> Secrets and variables -> Actions</b> bölümüne gidin.</li>
-          <li><code>GH_PAT</code> secret'ı ekleyin (<code>user:follow</code> ve <code>public_repo</code> yetkili token).</li>
-          <li><b>Actions</b> sekmesinden workflow'u etkinleştirin. Sistem her 2 saatte bir otomatik çalışır!</li>
-        </ol>
-        <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border); padding: 8px; border-radius: 6px; font-size: 11px;">
-          💡 <i>Not: GitHub Actions sunucusuz olduğu için web kontrol masası barındırmaz; döngü logları doğrudan Actions sekmesinde yer alır.</i>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <!-- ANA UYGULAMA PENCERESİ -->
   <div class="app-container">
     <!-- 1. ÜST HEADER BAR -->
@@ -839,8 +817,7 @@ HTML_DASHBOARD = """<!DOCTYPE html>
           </div>
 
           <div style="display: flex; gap: 6px; margin-top: 8px;">
-            <button class="btn btn-secondary" style="flex: 1; justify-content: center; font-size: 10px; padding: 5px;" onclick="directSupportCreator()" id="t_supportNowBtn">💖 Şimdi Destekle</button>
-            <button class="btn btn-secondary" style="flex: 1; justify-content: center; font-size: 10px; padding: 5px;" onclick="openActionsModal()" id="t_actionsGuideBtn">☁️ Actions Rehberi</button>
+            <button class="btn btn-secondary" style="width: 100%; justify-content: center; font-size: 10px; padding: 5px;" onclick="directSupportCreator()" id="t_supportNowBtn">💖 Şimdi Destekle</button>
           </div>
         </div>
 
@@ -945,7 +922,6 @@ HTML_DASHBOARD = """<!DOCTYPE html>
         creatorTitle: '🤝 Açık Kaynak Yardımlaşması',
         creatorDev: 'Geliştirici:',
         creatorFlagship: 'Amiral Proje:',
-        actionsGuideBtn: '☁️ Actions Rehberi',
         connectBtn: '🔑 GitHub ile Bağlan',
         logStreamTitle: '📋 TitForGit Canlı Akış & Radar',
         mAuthTitle: '🔐 GitHub Bağlantısı',
@@ -997,7 +973,6 @@ HTML_DASHBOARD = """<!DOCTYPE html>
         creatorTitle: '🤝 Open-Source Reciprocity',
         creatorDev: 'Developer:',
         creatorFlagship: 'Flagship Project:',
-        actionsGuideBtn: '☁️ Actions Guide',
         connectBtn: '🔑 Connect GitHub',
         logStreamTitle: '📋 TitForGit Live Stream & Radar',
         mAuthTitle: '🔐 GitHub Connection',
@@ -1049,7 +1024,6 @@ HTML_DASHBOARD = """<!DOCTYPE html>
       document.getElementById('t_creatorTitle').innerText = t.creatorTitle;
       document.getElementById('t_creatorDev').innerText = t.creatorDev;
       document.getElementById('t_creatorFlagship').innerText = t.creatorFlagship;
-      document.getElementById('t_actionsGuideBtn').innerText = t.actionsGuideBtn;
       if (document.getElementById('m_authTitle')) document.getElementById('m_authTitle').innerText = t.mAuthTitle;
       if (document.getElementById('m_deviceTitle')) document.getElementById('m_deviceTitle').innerText = t.mDeviceTitle;
       if (document.getElementById('m_deviceBtn')) document.getElementById('m_deviceBtn').innerText = t.mDeviceBtn;
@@ -1076,8 +1050,6 @@ HTML_DASHBOARD = """<!DOCTYPE html>
     function closeAuthModal() { document.getElementById('authModal').classList.remove('active'); }
     function openLogoutModal() { document.getElementById('logoutModal').classList.add('active'); }
     function closeLogoutModal() { document.getElementById('logoutModal').classList.remove('active'); }
-    function openActionsModal() { document.getElementById('actionsModal').classList.add('active'); }
-    function closeActionsModal() { document.getElementById('actionsModal').classList.remove('active'); }
     function openTgRadarModal() { document.getElementById('tgRadarModal').classList.add('active'); }
     function closeTgRadarModal() { document.getElementById('tgRadarModal').classList.remove('active'); }
 

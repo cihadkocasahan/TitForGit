@@ -12,8 +12,8 @@ TitForGit is an open-source Python application built on the **Tit-for-Tat** prin
 
 | | |
 |---|---|
-| [![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-Serverless-2088FF?logo=github-actions&logoColor=white)](#-method-1-serverless-github-actions-no-server-needed) | [![Docker](https://img.shields.io/badge/Docker-~20_MB-2496ED?logo=docker&logoColor=white)](#-method-2-self-hosted-docker-with-control-deck) |
-| [![Python 3.11](https://img.shields.io/badge/Python-3.11_Stdlib-3776AB?logo=python&logoColor=white)](https://python.org) | [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE) |
+| [![Docker](https://img.shields.io/badge/Docker-~20_MB-2496ED?logo=docker&logoColor=white)](#-quick-start) | [![Python 3.11](https://img.shields.io/badge/Python-3.11_Stdlib-3776AB?logo=python&logoColor=white)](https://python.org) |
+| [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE) | [![Awesome](https://awesome.re/badge.svg)](https://awesome.re) |
 
 ---
 
@@ -27,21 +27,9 @@ TitForGit is an educational AI-native coding demo, **not** a commercial automati
 
 ---
 
-## 🚀 Quick Start (Installation)
+## 🚀 Quick Start
 
-### Option 1: Serverless GitHub Actions (No Server Needed)
-
-Runs on GitHub's free scheduled runners inside your own fork.
-
-1. **Fork** this repository
-2. Go to **Settings → Secrets and variables → Actions** in your fork
-3. Add repository secrets:
-   - `GH_PAT` — GitHub Personal Access Token (`user:follow` & `public_repo` scopes)
-   - `TELEGRAM_BOT_TOKEN` — (Optional) From `@BotFather`
-   - `TELEGRAM_CHAT_ID` — (Optional) Your numeric Telegram Chat ID
-4. Enable workflows in the **Actions** tab. TitForGit runs automatically every 2 hours and commits state back to your repo.
-
-### Option 2: Self-Hosted Docker with Control Deck (~20 MB)
+### Self-Hosted Docker with Control Deck (~20 MB)
 
 Ideal for homelabs, VPS, Raspberry Pi, or local machines.
 
@@ -56,6 +44,13 @@ docker compose up -d
 # 3. Open http://localhost:8080 in browser
 #    - Click "Browser Device Flow" to link GitHub in 5 seconds
 #    - Or paste PAT token, configure Telegram bot, and set growth rules
+```
+
+### Local Python (No Docker)
+
+```bash
+# Run directly with Python 3.10+
+python titforgit.py
 ```
 
 ---
